@@ -1,3 +1,4 @@
+import {proxiedFormats} from './backend-proxy.js';
 // Extracts public format metadata from alternative video frontends.
 // Depends on independent volunteer-run instances: no guarantee of service or availability.
 const PIPED=[
@@ -145,11 +146,13 @@ export async function resolveVideo(id) {
   }
   return {data:null,errors};
 }
-export async function onRequestGet({request}){
+export async function onRequestGet({request,env}){
   const u=new URL(request.url);
   const id=u.searchParams.get('id')||'';
   const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
   if(!/^[A-Za-z0-9_-]{11}$/.test(id))return new Response(JSON.stringify({ok:false,error:'invalid_video_id'}),{status:400,headers});
+  const privateResult=await proxiedFormats(request,env,id);
+  if(privateResult)return privateResult;
   const {data,errors}=await resolveVideo(id);
   if(!data)return new Response(JSON.stringify({ok:false,error:'No available free extraction providers',attempts:errors}),{status:503,headers});
   return new Response(JSON.stringify({ok:true,title:data.title,provider:data.provider,instance:data.instance,duration:data.duration,streams:data.streams.map((s,i)=>({index:i,format:s.format,kind:s.kind,quality:s.quality,bitrate:s.bitrate,size:s.size})),providerFailures:errors.length}),{headers});
