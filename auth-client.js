@@ -13,8 +13,13 @@
       const json=await r.json();
       state={configured:json.configured===true,user:json.user||null};
     }catch{
-      state={configured:false,user:null,error:'auth_service_unavailable'};
+      state={configured:true,user:null,error:'auth_service_unavailable'};
+      document.documentElement.classList.add('raja-auth-required');
+      gate.hidden=false;
+      account.hidden=true;
       status.textContent='تعذر التحقق من حالة تسجيل Google.';
+      info.textContent='خدمة تسجيل الدخول غير متاحة الآن؛ حاول تحديث الصفحة لاحقًا.';
+      login.href='/api/auth/login';
       return state;
     }
     document.documentElement.classList.toggle('raja-auth-required',state.configured&&!state.user);
