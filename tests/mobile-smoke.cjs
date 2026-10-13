@@ -184,6 +184,20 @@ async function main() {
   assert.ok((await page.locator('#recentDownloads').innerText()).includes('MP3'));
   console.log('PASS: Download requests and on-device file list');
 
+  console.log('TEST: Protected account data');
+  const identity = await context.request.get(BASE+'api/auth/me');
+  assert.equal(identity.status(),200);
+  const identityData=await identity.json();
+  assert.equal(typeof identityData.configured,'boolean');
+  const privateRead=await context.request.get(BASE+'api/organizer');
+  assert.ok([401,503].includes(privateRead.status()),'must protect organizer reads');
+  const privateWrite=await context.request.put(BASE+'api/organizer',{
+    headers:{Origin:new URL(BASE).origin,'Content-Type':'application/json'},
+    data:{version:0,data:{favorites:[],playlists:[],clips:[]}}
+  });
+  assert.ok([401,503].includes(privateWrite.status()),'must protect organizer writes');
+  console.log('PASS: Unauthenticated clients cannot access private organizer');
+  
   console.log('TEST: Share target URL');
   const share=BASE+'?text='+encodeURIComponent('شاهد هذا المقطع '+EXAMPLE);
   await page.goto(share,{waitUntil:'domcontentloaded',timeout:40000});
