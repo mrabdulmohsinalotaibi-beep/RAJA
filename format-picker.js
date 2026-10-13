@@ -53,7 +53,7 @@
       const span=document.createElement('span');
       span.textContent=(stream.kind==='audio'?'🎵 ':'🎬 ')+label(stream);
       const note=document.createElement('small');
-      note.textContent=current.kind==='youtube'?'متاح عبر مزوّد مجاني — دون ضمان دائم':'الملف بصيغته الأصلية';
+      note.textContent=current.kind==='youtube'?(stream.backend?'من خادم رَجْع':'من مصدر مجاني متاح'):'الملف بصيغته الأصلية';
       b.append(span,note);
       b.onclick=()=>{chosen=i;render();renderAction();};
       root.append(b);
@@ -175,7 +175,7 @@
         const priority=s=>s.kind==='video'?(s.format==='mp4'?0:1):(s.format==='m4a'?2:3);
         return priority(a)-priority(b)||String(b.quality).localeCompare(String(a.quality),undefined,{numeric:true});
       });
-      chosen=options.length?0:null;
+      chosen=options.length?Math.max(0,options.findIndex(s=>s.kind==='video'&&s.format==='mp4'&&String(s.quality)==='720')):null;
       if(!options.length)error='لم يُرجع مزوّد التنزيل أي ملف قابل للحفظ.';
       if(json.title)$('formatIntro').textContent=json.title;
     }catch(e){
