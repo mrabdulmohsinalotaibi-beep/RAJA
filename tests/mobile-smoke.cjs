@@ -153,7 +153,7 @@ async function main() {
   console.log('TEST: Share target URL');
   const share=BASE+'?text='+encodeURIComponent('شاهد هذا المقطع '+EXAMPLE);
   await page.goto(share,{waitUntil:'domcontentloaded',timeout:40000});
-  await page.waitForFunction(()=>document.querySelector('#url')?.value?.includes(ID),{timeout:15000});
+  await page.waitForFunction(id=>document.querySelector('#url')?.value?.includes(id), ID, {timeout:15000});
   assert.ok((await page.locator('#url').inputValue()).includes(ID));
   console.log('PASS: Shared YouTube URL placed into downloader');
 
