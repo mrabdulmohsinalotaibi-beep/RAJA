@@ -14,7 +14,33 @@
 #localSearch{flex:1;min-width:180px}
 #localStatus{min-height:1.3rem;font-weight:600}
 @media(max-width:600px){.lib-item{align-items:stretch;flex-direction:column}.lib-item .line{gap:7px}.lib-btn{flex:1}.lib-upload{width:100%}}
-</style></head><body><main><header><strong style="font-size:29px">رَجْع <small>RAJA</small></strong><small>كل صوتٍ له رَجْع</small></header><h1>صوتك وصورتك، في مكان واحد.</h1><div class="line"><button id="install" hidden>تثبيت رَجْع كتطبيق</button><small id="installHelp">يمكن إضافة رَجْع للشاشة الرئيسية من قائمة مشاركة المتصفح.</small><a href="#library" style="color:#cbb6ff">مكتبتي الخاصة ↓</a></div><p>شغّل الوسائط، تحكم في المقطع، واختر محتواك اليومي.</p><section class="card"><h2>مقطع اليوم <small id="date"></small></h2><video id="player" controls playsinline preload="metadata"></video><iframe id="youtube" class="youtube" title="مشغل يوتيوب" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe><div class="controls"><button id="toggle">▶ تشغيل</button><button id="back">↺ 10</button><button id="next">10 ↻</button><input id="seek" type="range" min="0" max="100" value="0" aria-label="تقدم المقطع"><small id="clock">00:00 / 00:00</small></div><p id="featured">لم يُضف مقطع اليوم بعد.</p></section><section class="card"><h2>رابط الوسائط</h2><p>ألصق رابط YouTube لتشغيله هنا، أو رابط ملف صوت أو فيديو مباشر لتنزيله، أو اختر ملفًا من جهازك.</p><div class="line"><input id="url" type="url" placeholder="https://example.com/media.mp4" aria-label="رابط الملف"><button id="check">فتح الملف</button></div><label>ملف من الجهاز <input id="file" type="file" accept="audio/*,video/*"></label><button id="download" disabled>تنزيل الملف</button><p id="notice" role="status"></p><small>روابط YouTube تعمل للمشاهدة عبر المشغل الرسمي عندما يسمح صاحب المقطع بالتضمين. لا يتيح YouTube تنزيل MP4 أو MP3 عبر هذا المشغل. للنسخ الأصلية من مقاطعك استخدم YouTube Studio.</small></section><section class="card" id="library" aria-labelledby="libraryHeading">
+
+#formatChooser{border:1px solid #7760a9;background:linear-gradient(155deg,#24203e,#17172e);border-radius:20px;padding:18px;margin-top:18px;scroll-margin-top:15px}
+#formatChooser h3{margin:0 0 10px;font-size:1.3rem}
+#formatCover{width:220px;max-width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;border:1px solid #514873}
+.format-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.format-option{background:#272341;color:#fff;border:1px solid #5a507d;display:flex;flex-direction:column;align-items:flex-start;text-align:right;gap:7px;min-height:85px}
+.format-option.chosen{border-color:#ceb7ff;background:#4c367a;box-shadow:inset 0 0 0 1px #ceb7ff}
+.format-option small{font-size:12px;color:#e5ddfa}
+.format-actions{display:flex;gap:10px;flex-wrap:wrap}
+.format-actions button{flex:1;min-width:135px}
+.format-warning{color:#ffdaaa}
+#formatNotice{line-height:1.8}
+.format-source{font-size:12px;color:#bdacd7}
+@media(max-width:450px){.format-options{grid-template-columns:1fr}.format-actions button{min-width:100%}}
+</style></head><body><main><header><strong style="font-size:29px">رَجْع <small>RAJA</small></strong><small>كل صوتٍ له رَجْع</small></header><h1>صوتك وصورتك، في مكان واحد.</h1><div class="line"><button id="install" hidden>تثبيت رَجْع كتطبيق</button><small id="installHelp">يمكن إضافة رَجْع للشاشة الرئيسية من قائمة مشاركة المتصفح.</small><a href="#library" style="color:#cbb6ff">مكتبتي الخاصة ↓</a></div><p>شغّل الوسائط، تحكم في المقطع، واختر محتواك اليومي.</p><section class="card"><h2>مقطع اليوم <small id="date"></small></h2><video id="player" controls playsinline preload="metadata"></video><iframe id="youtube" class="youtube" title="مشغل يوتيوب" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe><div class="controls"><button id="toggle">▶ تشغيل</button><button id="back">↺ 10</button><button id="next">10 ↻</button><input id="seek" type="range" min="0" max="100" value="0" aria-label="تقدم المقطع"><small id="clock">00:00 / 00:00</small></div><p id="featured">لم يُضف مقطع اليوم بعد.</p></section><section class="card"><h2>رابط الوسائط</h2><p>ألصق رابط YouTube لتشغيله هنا، أو رابط ملف صوت أو فيديو مباشر لتنزيله، أو اختر ملفًا من جهازك.</p><div class="line"><input id="url" type="url" placeholder="https://example.com/media.mp4" aria-label="رابط الملف"><button id="check">فتح الملف</button></div><div id="formatChooser" hidden aria-label="اختيار صيغة التنزيل">
+<div class="line" style="justify-content:space-between"><h3>اختر صيغة المقطع</h3><button id="formatClose" type="button" class="lib-btn">إغلاق</button></div>
+<small id="formatSource" class="format-source"></small>
+<p id="formatIntro"></p>
+<img id="formatCover" alt="صورة مصغّرة لمقطع يوتيوب" hidden loading="lazy">
+<div id="formatButtons" class="format-options" role="group" aria-label="صيغ الفيديو والصوت"></div>
+<div class="format-actions">
+<button id="formatDownload" type="button" disabled>تنزيل إلى الجهاز</button>
+<button id="formatPreview" type="button" class="lib-btn">مشاهدة المقطع</button>
+<button id="formatKeep" type="button" class="lib-btn">حفظ في مكتبتي</button>
+</div>
+<p id="formatNotice" role="status" aria-live="polite"></p>
+</div><label>ملف من الجهاز <input id="file" type="file" accept="audio/*,video/*"></label><button id="download" disabled>تنزيل الملف</button><p id="notice" role="status"></p><small>روابط YouTube تعمل للمشاهدة عبر المشغل الرسمي عندما يسمح صاحب المقطع بالتضمين. لا يتيح YouTube تنزيل MP4 أو MP3 عبر هذا المشغل. للنسخ الأصلية من مقاطعك استخدم YouTube Studio.</small></section><section class="card" id="library" aria-labelledby="libraryHeading">
 <h2 id="libraryHeading">مكتبتي الشخصية على هذا الجهاز</h2>
 <p class="library-note">استورد الفيديو أو الصوت من جهازك، وشغّله لاحقًا من داخل رَجْع حتى دون إنترنت. الملفات تُخزَّن في مساحة هذا الموقع داخل المتصفح <strong>على نفس الجهاز فقط</strong>، ولا تُرفع إلى خوادمنا.</p>
 <div class="line">
@@ -47,4 +73,4 @@ $('form').onsubmit=e=>{e.preventDefault();let u;try{u=new URL($('media').value);
 $('clear').onclick=()=>{if(confirm('مسح الجدولة المحلية؟')){localStorage.removeItem(key);v.removeAttribute('src');v.load();$('featured').textContent='لم يُضف مقطع اليوم بعد.';refresh()}};refresh();
 
 window.rajaLoadMedia=load;window.rajaOpenYoutube=openYouTube;window.rajaYoutubeId=youtubeId;
-</script><script src="/library.js" defer></script></body></html>
+</script><script src="/library.js" defer></script><script src="/format-picker.js" defer></script></body></html>
