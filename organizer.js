@@ -95,26 +95,30 @@ async function bootstrap(){
   const lastKnown=syncedVersion();
   const localHasData=hasItems(data);
   const localIsPending=localStorage.getItem(dirtyStorageKey())==='1';
-  rememberVersion(result.version);
   if(localIsPending){
    rememberDirty(true);
    if(lastKnown===result.version){
+    rememberVersion(result.version);
     notice('جارٍ إرسال التعديلات المحفوظة من دون اتصال...');
     await push();
    }else{
     showConflict({version:result.version,data:result.data});
    }
   }else if(result.version===0&&localHasData){
+   rememberVersion(result.version);
    rememberDirty(true);
    await push();
   }else if(result.version>0&&localHasData&&lastKnown===null&&JSON.stringify(data)!==JSON.stringify(result.data)){
    // Protect unsynchronized data from older RAJA versions (which had no dirty flag).
    showConflict({version:result.version,data:result.data});
   }else{
+   rememberVersion(result.version);
    data=result.data;storeLocal();rememberDirty(false);render();
    notice('المفضلة والقوائم متزامنة مع حسابك.');
   }
  }catch{
+  // Protect edits made before first successful cloud connection from being silently overwritten.
+  if(hasItems(data)&&syncedVersion()===null)rememberDirty(true);
   notice('المزامنة غير متاحة الآن. بيانات جهازك محفوظة، ويمكنك إعادة المحاولة عند عودة الاتصال.',true);
  }
 }
