@@ -13,7 +13,7 @@ export async function onRequestGet({env}) {
     prompt:'select_account',
     access_type:'online'
   });
-  const response=Response.redirect('https://accounts.google.com/o/oauth2/v2/auth?'+params,302);
+  const response=new Response(null,{status:302,headers:{Location:'https://accounts.google.com/o/oauth2/v2/auth?'+params}});
   response.headers.set('Set-Cookie',cookie(STATE_COOKIE,session,600));
   response.headers.set('Cache-Control','no-store');
   return response;
