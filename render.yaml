@@ -4,7 +4,8 @@ services:
     runtime: docker
     plan: free
     rootDir: backend
-    dockerfilePath: backend/Dockerfile
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /health
     autoDeployTrigger: commit
     envVars:
