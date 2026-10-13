@@ -101,6 +101,10 @@ input{background:#2c2c2c;border-color:#606060}
 .local-download-progress progress{display:block;width:100%;height:13px;margin-top:10px;accent-color:#af8244}
 .local-download-progress progress::-webkit-progress-bar{background:#49443d;border-radius:10px}
 .local-download-progress progress::-webkit-progress-value{background:#af8244;border-radius:10px}
+
+.format-download-anchor{display:flex;align-items:center;justify-content:center;background:var(--raja-gold,#af8244);border-radius:12px;padding:12px 17px;color:#fff;font:inherit;cursor:pointer;text-decoration:none;text-align:center;min-height:46px}
+.format-download-anchor[aria-disabled="true"]{opacity:.5;cursor:not-allowed;pointer-events:none}
+.format-download-anchor[aria-disabled="false"]:hover{filter:brightness(1.07)}
 </style></head><body><main>
 <header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small></header>
 <section class="raja-panel" data-tab-panel="search">
@@ -119,7 +123,7 @@ input{background:#2c2c2c;border-color:#606060}
 <img id="formatCover" alt="صورة مصغّرة لمقطع يوتيوب" hidden loading="lazy">
 <div id="formatButtons" class="format-options" role="group" aria-label="الصيغ المتاحة"></div>
 <div class="format-actions">
-<button id="formatDownload" type="button" disabled>تنزيل إلى الجهاز</button>
+<a id="formatDownload" class="format-download-anchor" role="button" aria-disabled="true" tabindex="-1">تنزيل إلى الجهاز</a>
 <button id="formatPreview" type="button" class="lib-btn">مشاهدة المقطع</button>
 <button id="formatKeep" type="button" class="lib-btn">حفظ في مكتبتي</button>
 </div>
