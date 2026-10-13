@@ -26,7 +26,7 @@ export async function onRequestGet({request,env}) {
     identity=await verifyGoogleIdToken(json.id_token,env.GOOGLE_CLIENT_ID,stored.nonce);
   }catch{return failed('لم نتمكن من التحقق من حساب Google. أعد المحاولة.');}
   const session=await seal({iss:'raja-google',sub:identity.sub,email:identity.email,name:identity.name,iat:now,exp:now+7*86400},env.RAJA_SESSION_SECRET);
-  const response=Response.redirect('https://raja.athat.app/',303);
+  const response=new Response(null,{status:303,headers:{Location:'https://raja.athat.app/'}});
   response.headers.append('Set-Cookie',cookie(SESSION_COOKIE,session,7*86400));
   response.headers.append('Set-Cookie',expireCookie(STATE_COOKIE));
   response.headers.set('Cache-Control','no-store');
