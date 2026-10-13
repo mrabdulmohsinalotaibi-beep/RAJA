@@ -68,11 +68,13 @@ function button(label,callback,danger=false){
 }
 async function showItem(item){
   if(item.type==='youtube'){
+    window.rajaShowPlayer?.();
     window.rajaOpenYoutube(item.videoId);
     say('تم فتح رابط يوتيوب للمشاهدة فقط؛ لم يُحفظ الفيديو كملف.');
   }else{
     const stored=await read('blobs',item.id);
     if(!stored?.blob)throw Error('لم يتم العثور على الملف المحفوظ.');
+    window.rajaShowPlayer?.();
     if(previewURL)URL.revokeObjectURL(previewURL);
     previewURL=URL.createObjectURL(stored.blob);
     window.rajaLoadMedia(previewURL,item.name);
