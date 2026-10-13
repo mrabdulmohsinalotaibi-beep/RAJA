@@ -75,6 +75,84 @@
       say('يمكن تنزيل الملف بصيغته الأصلية '+current.extension+' إذا سمح الخادم المصدر.');
     }
   }
+  const BROWSER_MIRRORS=[
+    ['piped','https://pipedapi.kavin.rocks'],
+    ['piped','https://pipedapi.adminforge.de'],
+    ['piped','https://api.piped.private.coffee'],
+    ['invidious','https://inv.nadeko.net'],
+    ['invidious','https://invidious.nerdvpn.de'],
+    ['invidious','https://yt.chocolatemoo53.com']
+  ];
+  function directStreamUrl(raw){
+    try{
+      const u=new URL(raw);
+      if(u.protocol!=='https:'||u.username||u.password)return null;
+      const h=u.hostname.toLowerCase();
+      if(!h.endsWith('.googlevideo.com')&&!h.endsWith('.pipedproxy.kavin.rocks')&&!BROWSER_MIRRORS.some(([,base])=>new URL(base).hostname===h))return null;
+      return u.href;
+    }catch{return null}
+  }
+  function parseBrowserStreams(json,type){
+    const streams=[];
+    const add=(raw,kind)=>{
+      const url=directStreamUrl(raw.url);
+      if(!url)return;
+      const mime=String(raw.format||raw.mimeType||raw.type||raw.container||'').toLowerCase();
+      const format=mime.includes('m4a')||mime.includes('audio/mp4')?'m4a':mime.includes('mp4')?'mp4':mime.includes('webm')?'webm':mime.includes('opus')?'opus':mime.includes('ogg')?'ogg':'';
+      if(!format)return;
+      streams.push({format,kind,quality:String(raw.quality||raw.qualityLabel||raw.resolution||'').slice(0,50),bitrate:Number(raw.bitrate)||null,url,localDirect:true});
+    };
+    if(type==='piped'){
+      (json.videoStreams||[]).filter(e=>!e.videoOnly&&e.audioTrack!==false).forEach(e=>add(e,'video'));
+      (json.audioStreams||[]).forEach(e=>add(e,'audio'));
+    }else{
+      (json.formatStreams||[]).forEach(e=>add(e,'video'));
+      (json.adaptiveFormats||[]).filter(e=>String(e.type||'').startsWith('audio/')).forEach(e=>add(e,'audio'));
+    }
+    return streams.slice(0,25);
+  }
+  async function browserFallback(id,serial){
+    // Requests originate from the user's own browser; public providers may reject CORS.
+    const attempts=await Promise.all(BROWSER_MIRRORS.map(async ([type,base])=>{
+      const ac=new AbortController();
+      const timeout=setTimeout(()=>ac.abort(),7000);
+      try{
+        const response=await fetch(base+(type==='piped'?'/streams/':'/api/v1/videos/')+encodeURIComponent(id),{mode:'cors',credentials:'omit',signal:ac.signal});
+        if(!response.ok)return null;
+        const data=await response.json();
+        const streams=parseBrowserStreams(data,type);
+        return streams.length?{streams,title:String(data.title||'').slice(0,140)}:null;
+      }catch{return null}
+      finally{clearTimeout(timeout)}
+    }));
+    if(serial!==requestSerial)return false;
+    const good=attempts.find(Boolean);
+    if(!good)return false;
+    options=good.streams;
+    chosen=0;error='';
+    if(good.title)$('formatIntro').textContent=good.title;
+    return true;
+  }
+  async function saveBrowserStream(stream){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),180000);
+    const maxSize=300*1024*1024;
+    say('جارٍ تنزيل الملف على هذا الجهاز من مصدر عام. قد يستغرق الأمر وقتًا بحسب حجمه...');
+    try{
+      const response=await fetch(stream.url,{mode:'cors',credentials:'omit',signal:controller.signal});
+      if(!response.ok)throw new Error('تعذر تنزيل الملف من المصدر: '+response.status);
+      if(Number(response.headers.get('content-length')||0)>maxSize)throw new Error('الملف كبير؛ حد التنزيل عبر المتصفح 300 ميجابايت في هذا الوضع.');
+      const blob=await response.blob();
+      if(blob.size>maxSize)throw new Error('حجم الملف يتجاوز 300 ميجابايت.');
+      const objectURL=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=objectURL;a.download='raja-'+current.id+'.'+stream.format;
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(objectURL),60000);
+      say('انتهى استلام الملف من المصدر. تحقق من التنزيلات أو تطبيق الملفات على جهازك.');
+    }catch(e){
+      say('لم يكتمل تنزيل الملف من الخدمة العامة ('+(e.name==='AbortError'?'انتهت المهلة':e.message)+'). قد يمنع المتصفح الوصول إلى المصدر.',true);
+    }finally{clearTimeout(timer)}
+  }
   async function checkYoutube(id,serial){
     const ac=new AbortController();
     controller=ac;
@@ -83,7 +161,10 @@
       const json=await r.json().catch(()=>({}));
       if(serial!==requestSerial||current?.id!==id)return;
       if(!r.ok||!json.ok){
-        error='خدمة التنزيل المجانية لم تتمكن من قراءة هذا الفيديو حاليًا. قد تكون الخدمة العامة معطّلة أو يكون المقطع محميًا.';
+        error='لم تستجب الخدمة السحابية، جاري تجربة اتصال جهازك المباشر بمزودي الخدمة المجانية...';
+        render();
+        const success=await browserFallback(id,serial);
+        if(!success&&serial===requestSerial)error='لم تستجب خدمات تنزيل YouTube المجانية المتاحة لهذا الرابط. يمكنك مشاهدة المقطع، لكن لا أستطيع توفير تنزيل يعمل لهذا المقطع الآن.';
         return;
       }
       options=(Array.isArray(json.streams)?json.streams:[]).filter(s=>s&&
@@ -98,7 +179,7 @@
       if(!options.length)error='لم يُرجع مزوّد التنزيل أي ملف قابل للحفظ.';
       if(json.title)$('formatIntro').textContent=json.title;
     }catch(e){
-      if(e.name!=='AbortError'&&serial===requestSerial)error='تعذر الاتصال بخدمة التنزيل المجانية. أعد المحاولة لاحقًا.';
+      if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=await browserFallback(id,serial);if(!success&&serial===requestSerial)error='تعذر الاتصال بخدمات تنزيل يوتيوب المجانية من هذا الجهاز.';}
     }finally{
       if(serial===requestSerial){loading=false;render();}
     }
@@ -138,6 +219,7 @@
     if(current.kind==='youtube'){
       const s=options[chosen];
       if(!s)return;
+      if(s.localDirect){saveBrowserStream(s);return;}
       const q=new URLSearchParams({id:current.id,kind:s.kind,format:s.format,quality:s.quality||''});
       const url='/api/download?'+q.toString();
       const a=document.createElement('a');a.href=url;a.download='raja-'+current.id+'.'+s.format;
