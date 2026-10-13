@@ -1,119 +1,177 @@
-/* RAJA format picker. Never claim YouTube downloads are supported without a real backend. */
+/* RAJA YouTube format selector: downloads only actually available media streams. */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const pick = $('formatChooser');
-  const paste = $('url');
-  const types = [
-    {ext:'MP4', name:'فيديو MP4', detail:'فيديو مع الصوت', icon:'🎬'},
-    {ext:'MP3', name:'صوت MP3', detail:'صوت فقط', icon:'🎵'},
-    {ext:'WEBM', name:'فيديو WebM', detail:'فيديو بصيغته الأصلية', icon:'📹'},
-    {ext:'M4A', name:'صوت M4A', detail:'صيغة صوتية', icon:'🎧'},
-    {ext:'WAV', name:'صوت WAV', detail:'صوت غير مضغوط', icon:'🔉'},
-    {ext:'OGG', name:'صوت OGG', detail:'صيغة صوتية', icon:'🎶'},
-    {ext:'MOV', name:'فيديو MOV', detail:'صيغة فيديو', icon:'📽️'},
-    {ext:'AAC', name:'صوت AAC', detail:'صيغة صوتية', icon:'🔊'},
-    {ext:'FLAC', name:'صوت FLAC', detail:'صوت بجودة عالية', icon:'🎼'}
-  ];
-  const extPattern = /\.(mp4|mp3|webm|m4a|wav|ogg|mov|aac|flac)(?:$|[?#])/i;
-  let current, selected = 'MP4';
+  const picker = $('formatChooser');
+  const input = $('url');
+  const SUPPORTED = {
+    MP4:'فيديو MP4', WEBM:'فيديو WebM', M4A:'صوت M4A',
+    MP3:'صوت MP3', OPUS:'صوت OPUS', OGG:'صوت OGG',
+    WAV:'صوت WAV', MOV:'فيديو MOV', AAC:'صوت AAC', FLAC:'صوت FLAC'
+  };
+  let current = null, options=[], chosen=null, loading=false, error='', requestSerial=0, timer=null, controller=null;
   function parse(raw) {
     try {
-      const url = new URL(raw.trim());
-      if(!['https:', 'http:'].includes(url.protocol)) return null;
-      const yt = window.rajaYoutubeId?.(raw);
-      if(yt) return {kind:'youtube', id:yt, url:url.href};
-      const m = url.pathname.match(/\.([a-z0-9]+)$/i);
-      const extension = m?.[1]?.toUpperCase();
-      if(!types.some(t=>t.ext===extension)) return null;
-      return {kind:'direct', extension, url:url.href};
-    } catch { return null; }
+      const u=new URL(String(raw||'').trim());
+      if(!['https:','http:'].includes(u.protocol))return null;
+      const id=window.rajaYoutubeId?.(u.href);
+      if(id)return {kind:'youtube',id,url:u.href};
+      const extension=(u.pathname.match(/\.([a-z0-9]+)$/i)||[])[1]?.toUpperCase();
+      if(!SUPPORTED[extension])return null;
+      return {kind:'direct',extension,url:u.href};
+    }catch{return null}
   }
-  function setMessage(message, warn=false) {
-    $('formatNotice').textContent=message;
-    $('formatNotice').classList.toggle('format-warning',warn);
+  function say(text,warn=false){
+    const el=$('formatNotice');
+    el.textContent=text;
+    el.classList.toggle('format-warning',warn);
   }
-  function drawOptions(){
-    const root = $('formatButtons');
+  function label(stream){
+    const t=SUPPORTED[stream.format.toUpperCase()]||stream.format.toUpperCase();
+    return t + (stream.quality ? ' — '+stream.quality : '')+(stream.kind==='audio'&&stream.bitrate?' ('+Math.round(stream.bitrate/1000)+' kbps)':'');
+  }
+  function render(){
+    const root=$('formatButtons');
     root.replaceChildren();
-    const options = current.kind === 'youtube' ? types.slice(0,4)
-      : [types.find(t=>t.ext===current.extension), ...types.filter(t=>t.ext!==current.extension).slice(0,3)];
-    for(const t of options) {
-      const available = current.kind === 'direct' && t.ext === current.extension;
+    if(!current)return;
+    let opts=[];
+    if(current.kind==='direct'){
+      opts=[{format:current.extension.toLowerCase(),kind:/^(mp3|m4a|ogg|opus|flac|aac|wav)$/.test(current.extension.toLowerCase())?'audio':'video',quality:'',available:true}];
+    }else{
+      opts=options;
+    }
+    if(opts.length===0){
+      const p=document.createElement('p');
+      p.textContent=loading?'جاري البحث عن صيغ قابلة للتنزيل...':error||'لم يتم العثور على أي صيغة متاحة لهذا المقطع.';
+      p.className='muted';root.append(p);
+    }
+    opts.forEach((stream,i)=>{
       const b=document.createElement('button');
-      b.type='button';
-      b.className='format-option'+(selected===t.ext?' chosen':'');
-      b.setAttribute('aria-pressed', String(selected===t.ext));
-      const first=document.createElement('span');first.textContent=t.icon+' '+t.name;
-      const second=document.createElement('small');
-      second.textContent=available?'متاح: الملف الأصلي':current.kind==='youtube'?'يتطلب خدمة تنزيل':'يتطلب تحويل الصيغة';
-      b.append(first,second);
-      b.onclick=()=>{selected=t.ext;drawOptions();drawAction();};
+      const active=chosen===i;
+      b.type='button';b.className='format-option'+(active?' chosen':'');
+      b.setAttribute('aria-pressed',String(active));
+      const span=document.createElement('span');
+      span.textContent=(stream.kind==='audio'?'🎵 ':'🎬 ')+label(stream);
+      const note=document.createElement('small');
+      note.textContent=current.kind==='youtube'?'متاح عبر مزوّد مجاني — دون ضمان دائم':'الملف بصيغته الأصلية';
+      b.append(span,note);
+      b.onclick=()=>{chosen=i;render();renderAction();};
       root.append(b);
-    }
+    });
+    renderAction();
   }
-  function drawAction() {
-    const ready=current.kind==='direct' && current.extension===selected;
+  function renderAction(){
     const b=$('formatDownload');
+    const selected=current?.kind==='youtube'?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
+    const ready=!!selected && !loading;
     b.disabled=!ready;
-    b.textContent=ready?'تنزيل '+selected+' إلى الجهاز':'تنزيل '+selected+' (غير متاح بعد)';
-    if(current.kind==='youtube'){
-      setMessage('تم التعرف على رابط YouTube. اختيار MP4 أو MP3 هو تفضيل للصيغة، لكن لا توجد خدمة استخراج متصلة بالموقع؛ لا يمكن تنزيل الفيديو من هذا الرابط حاليًا.',true);
-    } else if(ready) {
-      setMessage('يمكن محاولة تنزيل الملف بصيغته '+selected+' دون تحويل. قد يفتح المصدر الملف بدل تنزيله إذا منع الخادم الحفظ المباشر.');
-    } else {
-      setMessage('التحويل من '+current.extension+' إلى '+selected+' غير متاح حاليًا؛ تستطيع تنزيل الملف بصيغته الأصلية.',true);
+    b.textContent=ready?'تنزيل '+selected.format.toUpperCase()+' إلى جهازي':loading?'جاري فحص الصيغ...':'لا توجد صيغة تنزيل متاحة';
+    if(current?.kind==='youtube'){
+      if(loading)say('يجري فحص صيغ MP4 والصوت من مصادر مجانية. انتظر النتيجة...');
+      else if(error)say(error,true);
+      else if(ready)say('اختر الجودة ثم اضغط تنزيل. سيُحفظ الملف في تنزيلات الجهاز إذا سمح مصدر المقطع بذلك. لا يجري تخزينه دائمًا على رَجْع.');
+      else say('لم تتوفر صيغ قابلة للتنزيل لهذا الرابط.',true);
+    }else if(current?.kind==='direct'){
+      say('يمكن تنزيل الملف بصيغته الأصلية '+current.extension+' إذا سمح الخادم المصدر.');
     }
   }
-  function inspect(silent=false) {
-    const data = parse(paste.value);
-    if(!data) {
-      pick.hidden=true;
-      current=null;
-      if(!silent) $('notice').textContent='ألصق رابط YouTube صحيحًا أو رابط ملف مباشر بصيغة مدعومة.';
+  async function checkYoutube(id,serial){
+    const ac=new AbortController();
+    controller=ac;
+    try{
+      const r=await fetch('/api/formats?id='+encodeURIComponent(id),{signal:ac.signal,cache:'no-store'});
+      const json=await r.json().catch(()=>({}));
+      if(serial!==requestSerial||current?.id!==id)return;
+      if(!r.ok||!json.ok){
+        error='خدمة التنزيل المجانية لم تتمكن من قراءة هذا الفيديو حاليًا. قد تكون الخدمة العامة معطّلة أو يكون المقطع محميًا.';
+        return;
+      }
+      options=(Array.isArray(json.streams)?json.streams:[]).filter(s=>s&&
+        ['video','audio'].includes(s.kind)&&
+        ['mp4','webm','m4a','mp3','opus','ogg'].includes(s.format));
+      // Expose only real formats. Never suggest MP3 unless provider actually supplies MP3.
+      options=options.slice(0,30).sort((a,b)=>{
+        const priority=s=>s.kind==='video'?(s.format==='mp4'?0:1):(s.format==='m4a'?2:3);
+        return priority(a)-priority(b)||String(b.quality).localeCompare(String(a.quality),undefined,{numeric:true});
+      });
+      chosen=options.length?0:null;
+      if(!options.length)error='لم يُرجع مزوّد التنزيل أي ملف قابل للحفظ.';
+      if(json.title)$('formatIntro').textContent=json.title;
+    }catch(e){
+      if(e.name!=='AbortError'&&serial===requestSerial)error='تعذر الاتصال بخدمة التنزيل المجانية. أعد المحاولة لاحقًا.';
+    }finally{
+      if(serial===requestSerial){loading=false;render();}
+    }
+  }
+  function resetNetwork(){
+    requestSerial++;
+    if(controller){controller.abort();controller=null}
+    options=[];chosen=null;loading=false;error='';
+  }
+  function inspect(silent=false,force=false){
+    const data=parse(input.value);
+    if(!data){
+      resetNetwork();current=null;picker.hidden=true;
+      if(!silent)$('notice').textContent='أدخل رابط يوتيوب أو رابط ملف وسائط مباشر صحيح.';
       return false;
     }
-    if(current?.url===data.url && !pick.hidden) return true;
+    if(current?.url===data.url&&!force)return true;
+    resetNetwork();
     current=data;
-    selected=data.kind==='youtube'?'MP4':data.extension;
-    pick.hidden=false;
-    $('formatSource').textContent=data.kind==='youtube'?'رابط YouTube':'رابط ملف وسائط مباشر';
-    $('formatIntro').textContent=data.kind==='youtube'
-      ?'اختر الصيغة التي تريدها. التنزيل من YouTube يحتاج إلى خدمة مستقلة غير مفعّلة حاليًا.'
-      :'اختر صيغة التنزيل. المتاح الآن هو الملف بصيغته الأصلية، دون تحويل.';
-    $('formatPreview').textContent=data.kind==='youtube'?'مشاهدة عبر YouTube':'تشغيل المقطع';
-    $('formatCover').hidden=data.kind!=='youtube';
-    if(data.kind==='youtube') $('formatCover').src='https://i.ytimg.com/vi/'+encodeURIComponent(data.id)+'/hqdefault.jpg';
-    else $('formatCover').removeAttribute('src');
-    drawOptions();drawAction();
+    picker.hidden=false;
+    $('formatSource').textContent=data.kind==='youtube'?'رابط YouTube':'ملف مباشر';
+    $('formatIntro').textContent=data.kind==='youtube'?'اكتشاف صيغ الفيديو والصوت المتاحة...':'تنزيل الملف بصيغته الأصلية';
+    $('formatPreview').textContent=data.kind==='youtube'?'مشاهدة الفيديو':'تشغيل الملف';
+    const cover=$('formatCover');
+    cover.hidden=data.kind!=='youtube';
+    if(data.kind==='youtube')cover.src='https://i.ytimg.com/vi/'+encodeURIComponent(data.id)+'/hqdefault.jpg';
+    else cover.removeAttribute('src');
+    if(data.kind==='youtube'){
+      loading=true;
+      render();
+      checkYoutube(data.id,requestSerial);
+    }else{chosen=0;render();}
     return true;
   }
   $('formatDownload').onclick=()=>{
-    if(!current || current.kind!=='direct' || selected!==current.extension) return;
+    if(!current||loading)return;
+    if(current.kind==='youtube'){
+      const s=options[chosen];
+      if(!s)return;
+      const q=new URLSearchParams({id:current.id,kind:s.kind,format:s.format,quality:s.quality||''});
+      const url='/api/download?'+q.toString();
+      const a=document.createElement('a');a.href=url;a.download='raja-'+current.id+'.'+s.format;
+      document.body.appendChild(a);a.click();a.remove();
+      say('تم إرسال طلب تنزيل '+label(s)+' إلى المتصفح. إذا تعذر وصول المزوّد للفيديو فلن يكتمل التنزيل.');
+      return;
+    }
     const a=document.createElement('a');
-    a.href=current.url;
-    a.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-media');
-    a.rel='noopener noreferrer';
-    document.body.appendChild(a);a.click();a.remove();
-    setMessage('تم إرسال رابط الملف إلى المتصفح. يعتمد إكمال الحفظ على سماح الخادم الأصلي بالتنزيل.');
+    a.href=current.url;a.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-media');
+    a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
+    say('أرسلنا رابط الملف المباشر إلى تنزيلات المتصفح.');
   };
   $('formatPreview').onclick=()=>{
-    if(!current) return;
-    if(current.kind==='youtube') window.rajaOpenYoutube(current.id);
-    else window.rajaLoadMedia(current.url,decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'ملف وسائط'));
-    document.getElementById('player').scrollIntoView({behavior:'smooth',block:'center'});
+    if(!current)return;
+    if(current.kind==='youtube')window.rajaOpenYoutube(current.id);
+    else window.rajaLoadMedia(current.url,'وسائط');
+    $('player').scrollIntoView({behavior:'smooth',block:'center'});
   };
   $('formatKeep').onclick=()=>{
     if(!current)return;
-    const b=$('addToLibrary');
-    if(b) { b.click(); $('library').scrollIntoView({behavior:'smooth',block:'start'}); }
-    else setMessage('تعذر الوصول إلى المكتبة المحلية.',true);
+    $('addToLibrary')?.click();
+    $('library')?.scrollIntoView({behavior:'smooth',block:'start'});
   };
-  $('formatClose').onclick=()=>{pick.hidden=true;};
-  paste.addEventListener('input',()=>inspect(true));
-  paste.addEventListener('change',()=>inspect(true));
-  $('check').textContent='عرض خيارات التحميل';
-  $('check').onclick=()=>{inspect(); if(!pick.hidden)pick.scrollIntoView({behavior:'smooth',block:'center'});};
-  // Support entering a URL with a query string such as youtu.be/ID?si=... .
-  if(paste.value) inspect(true);
+  $('formatClose').onclick=()=>{picker.hidden=true;};
+  input.addEventListener('input',()=>{
+    clearTimeout(timer);
+    if(!input.value.trim()){inspect(true);return}
+    timer=setTimeout(()=>inspect(true),550);
+  });
+  input.addEventListener('change',()=>inspect(true));
+  $('check').textContent='عرض صيغ الفيديو والصوت';
+  $('check').onclick=()=>{
+    inspect(false,!picker.hidden&&current?.kind==='youtube'&&!!error);
+    if(!picker.hidden)picker.scrollIntoView({behavior:'smooth',block:'center'});
+  };
+  if(input.value)inspect(true);
 })();
