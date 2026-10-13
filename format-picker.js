@@ -10,6 +10,19 @@
     WAV:'صوت WAV', MOV:'فيديو MOV', AAC:'صوت AAC', FLAC:'صوت FLAC'
   };
   let current = null, options=[], chosen=null, loading=false, error='', requestSerial=0, timer=null, controller=null;
+  const ssFallback=$('ssFallback'), ssFallbackLink=$('ssFallbackLink');
+  function updateSSFallback(){
+    const isYoutube=current?.kind==='youtube';
+    ssFallback.hidden=!isYoutube;
+    if(!isYoutube)return;
+    // Construct from the validated 11-character YouTube video identifier only.
+    const ssURL=new URL('https://www.ssyoutube.com/watch');
+    ssURL.searchParams.set('v',current.id);
+    ssFallbackLink.href=ssURL.toString();
+    $('ssDescription').textContent=error
+      ? 'لم يتمكن رَجْع من توفير الصيغ لهذا الرابط. بإمكانك تجربة خدمة SS الخارجية.'
+      : 'يمكنك أيضًا تجربة تحويل رابط يوتيوب إلى طريقة SS الخارجية إذا لم تنجح الخيارات داخل رَجْع.';
+  }
   function parse(raw) {
     try {
       const u=new URL(String(raw||'').trim());
@@ -61,6 +74,7 @@
     renderAction();
   }
   function renderAction(){
+    updateSSFallback();
     const b=$('formatDownload');
     const selected=current?.kind==='youtube'?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
     const ready=!!selected && !loading;
@@ -215,14 +229,14 @@
   function inspect(silent=false,force=false){
     const data=parse(input.value);
     if(!data){
-      resetNetwork();current=null;picker.hidden=true;
+      resetNetwork();current=null;picker.hidden=true;updateSSFallback();
       if(!silent)$('notice').textContent='أدخل رابط يوتيوب أو رابط ملف وسائط مباشر صحيح.';
       return false;
     }
     if(current?.url===data.url&&!force)return true;
     resetNetwork();
     current=data;
-    picker.hidden=false;
+    picker.hidden=false;updateSSFallback();
     $('formatSource').textContent=data.kind==='youtube'?'رابط YouTube':'ملف مباشر';
     $('formatIntro').textContent=data.kind==='youtube'?'اكتشاف صيغ الفيديو والصوت المتاحة...':'تنزيل الملف بصيغته الأصلية';
     $('formatPreview').textContent=data.kind==='youtube'?'مشاهدة الفيديو':'تشغيل الملف';
