@@ -155,6 +155,30 @@ $('persistStorage').addEventListener('click',async()=>{
 });
 
 const LOCAL_YOUTUBE_LIMIT=120*1024*1024;
+const progressWrap=$('localDownloadProgressWrap');
+const progressBar=$('localDownloadProgress');
+const progressLabel=$('localDownloadProgressLabel');
+function setProgress(stage, bytes=0, total=0){
+  if(!progressWrap||!progressBar||!progressLabel)return;
+  progressWrap.hidden=false;
+  if(stage==='pending'){
+    progressBar.removeAttribute('value');
+    progressLabel.textContent='جارٍ تجهيز الملف على الخادم...';
+  }else if(stage==='downloading'){
+    if(total>0){
+      progressBar.value=Math.min(100,Math.round(bytes/total*100));
+      progressLabel.textContent=progressBar.value+'٪';
+    }else{
+      progressBar.removeAttribute('value');
+      progressLabel.textContent=fmt(bytes)+' تم استلامها';
+    }
+  }else if(stage==='done'){
+    progressBar.value=100;progressLabel.textContent='تم الحفظ بنجاح';
+  }else if(stage==='error'){
+    progressBar.value=0;progressLabel.textContent='لم يكتمل حفظ الملف';
+  }
+}
+
 window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality}) {
   if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)||!['mp4','mp3'].includes(format)||!['audio','video'].includes(kind)||!/^\d{2,4}$/.test(String(quality))) {
     say('خيارات الحفظ غير صالحة.',true);
@@ -170,6 +194,7 @@ window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality})
     say(msg,bad);
     if(formatStatus){formatStatus.textContent=msg;formatStatus.classList.toggle('format-warning',bad);}
   }
+  setProgress('pending');
   announce('جاري تنزيل '+filename+' إلى مكتبتك في هذا الجهاز...');
   try{
     const response=await fetch('/api/download?'+params,{signal:ctrl.signal,cache:'no-store'});
@@ -180,6 +205,7 @@ window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality})
     const mime=response.headers.get('content-type')||'';
     if(!mime.startsWith(format==='mp3'?'audio/':'video/'))throw Error('المصدر لم يعطِ ملف وسائط صالحًا.');
     const expected=Number(response.headers.get('content-length')||0);
+    setProgress('downloading',0,expected);
     if(expected>LOCAL_YOUTUBE_LIMIT)throw Error('ملف كبير جدًا للحفظ الداخلي (الحد 120 ميجابايت). استخدم زر «تنزيل إلى جهازي» لحفظه في تطبيق الملفات.');
     let blob;
     if(response.body?.getReader){
@@ -190,6 +216,7 @@ window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality})
         if(done)break;
         if(value){
           received+=value.byteLength;
+          setProgress('downloading',received,expected);
           if(received>LOCAL_YOUTUBE_LIMIT){
             await reader.cancel();
             throw Error('تجاوز الملف 120 ميجابايت. استخدم التنزيل المباشر إلى تطبيق الملفات.');
@@ -207,10 +234,12 @@ window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality})
     if(!blob.size)throw Error('لم تصل بيانات الفيديو.');
     await saveFile(new File([blob],filename,{type:mime}));
     await refresh();
+    setProgress('done');
     announce('تم تنزيل '+filename+' وحفظه بنجاح داخل «ملفاتي» على هذا الجهاز.');
     return true;
   }catch(err){
     const msg=err.name==='AbortError'?'انتهت مهلة حفظ الملف.':err.name==='QuotaExceededError'?'المساحة المتاحة في هذا الجهاز لا تكفي.':(err.message||'تعذر حفظ الملف.');
+    setProgress('error');
     announce(msg,true);return false;
   }finally{clearTimeout(timeout)}
 };
