@@ -75,7 +75,7 @@
   }
   function logDownload() {
     const b = $('formatDownload');
-    if (b?.disabled) return;
+    if (!b || b.getAttribute('aria-disabled') === 'true' || !b.getAttribute('href')) return;
     const link = $('url').value.trim();
     if (!link) return;
     const chosen = document.querySelector('#formatButtons .chosen');
