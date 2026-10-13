@@ -4,6 +4,7 @@
 const $=id=>document.getElementById(id);
 const LIMIT=150;
 let data={favorites:[],playlists:[],clips:[]},version=0,scope='',server=false,syncing=false;
+let pending=false,revision=0,conflict=null;
 let currentVideo=null,reminderTimer=null;
 const validId=id=>/^[A-Za-z0-9_-]{11}$/.test(id||'');
 const uid=()=>crypto.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
@@ -30,7 +31,44 @@ function readLocal(){
  }catch{}
  return empty();
 }
-function storeLocal(){try{localStorage.setItem(scope,JSON.stringify(data))}catch{notice('لم تتوفر مساحة لحفظ البيانات محليًا.',true)}}
+function storeLocal(){
+ try{localStorage.setItem(scope,JSON.stringify(data));}
+ catch{notice('لم تتوفر مساحة لحفظ البيانات محليًا.',true)}
+}
+const dirtyStorageKey=()=>scope+':pending';
+const baseVersionKey=()=>scope+':last-server-version';
+const conflictBackupKey=()=>scope+':conflict-backup';
+function rememberDirty(value){
+ pending=value;
+ try{if(value)localStorage.setItem(dirtyStorageKey(),'1');else localStorage.removeItem(dirtyStorageKey());}
+ catch{}
+}
+function rememberVersion(value){
+ version=value;
+ try{localStorage.setItem(baseVersionKey(),String(value));}catch{}
+}
+function syncedVersion(){
+ try{
+  const raw=localStorage.getItem(baseVersionKey());
+  if(raw===null)return null;
+  const n=Number(raw);return Number.isInteger(n)&&n>=0?n:null;
+ }catch{return null}
+}
+function hasItems(value){
+ return !!(value.favorites?.length||value.playlists?.length||value.clips?.length);
+}
+function showConflict(latest){
+ conflict=latest;
+ try{localStorage.setItem(conflictBackupKey(),JSON.stringify({data,at:Date.now()}))}catch{}
+ const panel=$('organizerConflict');
+ if(panel)panel.hidden=false;
+ notice('توجد تغييرات مختلفة على جهاز آخر. احتفظنا بنسختك؛ اختر أي نسخة تريد اعتمادها.',true);
+}
+function clearConflict(){
+ conflict=null;
+ const panel=$('organizerConflict');
+ if(panel)panel.hidden=true;
+}
 function authScope(){
  const state=window.rajaAuthState?.();
  if(state?.configured&&!state.user?.id)return null;
@@ -43,31 +81,129 @@ async function bootstrap(){
  $('organizerSection').hidden=false;
  scope=value;data=readLocal();render();
  const auth=window.rajaAuthState?.();
- if(!auth?.configured){notice('المفضلة والقوائم محفوظة على جهازك حتى يتم تفعيل تسجيل Google.');return}
+ if(!auth?.configured){
+  notice('المفضلة والقوائم محفوظة على جهازك حتى يتم تفعيل تسجيل Google.');
+  return;
+ }
+ // Never merge anonymous favorites into someone else's account without explicit consent.
  try{
   const r=await fetch('/api/organizer',{cache:'no-store',credentials:'same-origin'});
   if(!r.ok)throw Error('load');
   const result=await r.json();
-  if(result.ok){
-   server=true;version=result.version;
-   const localHasData=data.favorites.length||data.playlists.length||data.clips.length;
-   if(version===0&&localHasData){await push()}else{data=result.data;storeLocal();render();notice('المفضلة والقوائم متزامنة مع حسابك.')}
+  if(!result.ok)throw Error('invalid-cloud-response');
+  server=true;
+  const lastKnown=syncedVersion();
+  const localHasData=hasItems(data);
+  const localIsPending=localStorage.getItem(dirtyStorageKey())==='1';
+  rememberVersion(result.version);
+  if(localIsPending){
+   rememberDirty(true);
+   if(lastKnown===result.version){
+    notice('جارٍ إرسال التعديلات المحفوظة من دون اتصال...');
+    await push();
+   }else{
+    showConflict({version:result.version,data:result.data});
+   }
+  }else if(result.version===0&&localHasData){
+   rememberDirty(true);
+   await push();
+  }else if(result.version>0&&localHasData&&lastKnown===null&&JSON.stringify(data)!==JSON.stringify(result.data)){
+   // Protect unsynchronized data from older RAJA versions (which had no dirty flag).
+   showConflict({version:result.version,data:result.data});
+  }else{
+   data=result.data;storeLocal();rememberDirty(false);render();
+   notice('المفضلة والقوائم متزامنة مع حسابك.');
   }
- }catch{notice('المزامنة غير متاحة حاليًا. التعديلات تحفظ محليًا مؤقتًا.',true)}
+ }catch{
+  notice('المزامنة غير متاحة الآن. بيانات جهازك محفوظة، ويمكنك إعادة المحاولة عند عودة الاتصال.',true);
+ }
 }
 async function push(){
- if(!server||syncing)return;
+ if(!server||syncing||conflict||!pending)return;
  syncing=true;
  try{
-  const r=await fetch('/api/organizer',{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({version,data})});
-  const obj=await r.json().catch(()=>({}));
-  if(r.status===409){version=obj.latest.version;data=obj.latest.data;storeLocal();render();notice('تغيرت القائمة على جهاز آخر، لذلك عُرضت أحدث نسخة. أعد التعديل المطلوب.',true)}
-  else if(r.ok&&obj.ok){version=obj.version;notice('تمت المزامنة مع حسابك بنجاح.')}
-  else notice('تعذرت المزامنة؛ احتفظنا بالتغييرات على هذا الجهاز.',true);
- }catch{notice('الاتصال غير متاح؛ حُفظت بياناتك على الجهاز.',true)}
- finally{syncing=false}
+  for(let attempt=0;attempt<5&&pending&&!conflict;attempt++){
+   const generation=revision;
+   const snapshot=JSON.stringify(data);
+   const r=await fetch('/api/organizer',{
+    method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({version,data:JSON.parse(snapshot)})
+   });
+   const obj=await r.json().catch(()=>({}));
+   if(r.status===409 && obj.latest && Number.isInteger(obj.latest.version)){
+    showConflict(obj.latest);
+    break;
+   }
+   if(!r.ok||!obj.ok){
+    notice('فشلت المزامنة مؤقتًا؛ بياناتك ما زالت محفوظة على الجهاز.',true);
+    break;
+   }
+   rememberVersion(obj.version);
+   if(revision===generation&&JSON.stringify(data)===snapshot){
+    rememberDirty(false);
+    notice('تمت المزامنة مع حسابك بنجاح.');
+   }else{
+    // Another edit was made while this request was in flight: sync it next.
+    rememberDirty(true);
+   }
+  }
+ }catch{
+  notice('تعذر الاتصال. لم نحذف تغييراتك المحلية؛ أعد المزامنة لاحقًا.',true);
+ }finally{
+  syncing=false;
+ }
 }
-function changed(message){storeLocal();render();notice(message);void push()}
+function changed(message){
+ revision++;
+ rememberDirty(true);
+ storeLocal();render();notice(message);
+ void push();
+}
+$('organizerSyncNow')?.addEventListener('click',async()=>{
+ if(!scope)return;
+ if(conflict)return notice('اختر كيفية معالجة تعارض القوائم أولًا.',true);
+ if(!server){
+  // Re-read the cloud safely when the initial request failed.
+  try{
+   const r=await fetch('/api/organizer',{cache:'no-store',credentials:'same-origin'});
+   if(!r.ok)throw Error('failed');
+   const latest=await r.json();
+   if(!latest.ok)throw Error('failed');
+   server=true;
+   const lastKnown=syncedVersion();
+   if(pending&&(lastKnown===null||lastKnown!==latest.version)){
+    showConflict({version:latest.version,data:latest.data});return;
+   }
+   rememberVersion(latest.version);
+   if(!pending){data=latest.data;storeLocal();render();notice('أصبحت نسخة جهازك محدثة.');return}
+  }catch{return notice('تعذر الاتصال بالمزامنة. حاول لاحقًا.',true)}
+ }
+ if(!pending){
+  notice('ليس هناك تغييرات معلّقة للمزامنة.');
+  return;
+ }
+ await push();
+});
+$('organizerKeepLocal')?.addEventListener('click',async()=>{
+ if(!conflict)return;
+ const newest=conflict;
+ clearConflict();
+ rememberVersion(newest.version);
+ rememberDirty(true);
+ await push();
+});
+$('organizerUseCloud')?.addEventListener('click',()=>{
+ if(!conflict)return;
+ if(!confirm('استبدال بيانات هذا الجهاز بالنسخة السحابية؟ سيظل لديك ملف احتياطي محلي للتعديلات السابقة.'))return;
+ const newest=conflict;
+ data=newest.data;
+ rememberVersion(newest.version);
+ rememberDirty(false);
+ clearConflict();
+ storeLocal();render();
+ notice('تم اعتماد النسخة السحابية على هذا الجهاز.');
+});
+window.addEventListener('online',()=>{if(pending&&!conflict)void push()});
 function btn(title,onClick){
  const b=document.createElement('button');b.type='button';b.className='org-btn';b.textContent=title;b.onclick=onClick;return b;
 }
