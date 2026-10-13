@@ -234,6 +234,7 @@
   };
   $('formatPreview').onclick=()=>{
     if(!current)return;
+    window.rajaShowPlayer?.();
     if(current.kind==='youtube')window.rajaOpenYoutube(current.id);
     else window.rajaLoadMedia(current.url,'وسائط');
     $('player').scrollIntoView({behavior:'smooth',block:'center'});
@@ -241,7 +242,7 @@
   $('formatKeep').onclick=()=>{
     if(!current)return;
     $('addToLibrary')?.click();
-    $('library')?.scrollIntoView({behavior:'smooth',block:'start'});
+    window.rajaSwitchTab?.('files');
   };
   $('formatClose').onclick=()=>{picker.hidden=true;};
   input.addEventListener('input',()=>{
@@ -250,7 +251,8 @@
     timer=setTimeout(()=>inspect(true),550);
   });
   input.addEventListener('change',()=>inspect(true));
-  $('check').textContent='عرض صيغ الفيديو والصوت';
+  $('check').setAttribute('aria-label','عرض صيغ الفيديو والصوت');
+  $('check').title='عرض صيغ الفيديو والصوت';
   $('check').onclick=()=>{
     inspect(false,!picker.hidden&&current?.kind==='youtube'&&!!error);
     if(!picker.hidden)picker.scrollIntoView({behavior:'smooth',block:'center'});
