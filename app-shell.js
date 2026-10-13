@@ -107,9 +107,17 @@
       $('url').focus();
     }
   });
-  $('url')?.addEventListener('keydown', event => {
+  $('browseMedia')?.addEventListener('click', () => {
+    const raw = $('url').value.trim();
+    const yt = window.rajaYoutubeId?.(raw);
+    window.rajaShowPlayer?.();
+    if (yt) window.rajaOpenYoutube?.(yt);
+    else if (raw) $('check').click();
+  });
+    $('url')?.addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); $('check').click(); }
   });
+  window.rajaSwitchTab = switchTab;
   window.rajaShowPlayer = () => {
     switchTab('search');
     const details = $('playerDetails');
