@@ -11,6 +11,39 @@
   };
   let current = null, options=[], chosen=null, loading=false, error='', requestSerial=0, timer=null, controller=null;
   const ssFallback=$('ssFallback'), ssFallbackLink=$('ssFallbackLink');
+  const ssAutoRedirect=$('ssAutoRedirect');
+  const ssCountdown=$('ssCountdown');
+  const ssCancel=$('ssCancelRedirect');
+  let ssTimer=null;
+  function cancelSSRedirect(){
+    if(ssTimer!==null){clearTimeout(ssTimer);ssTimer=null}
+    ssCountdown.hidden=true;
+    ssCancel.hidden=true;
+  }
+  function offerSSRedirect(serial){
+    cancelSSRedirect();
+    if(serial!==requestSerial||current?.kind!=='youtube'||!ssAutoRedirect.checked)return;
+    let seconds=7;
+    const link=ssFallbackLink.href;
+    ssCountdown.hidden=false;
+    ssCancel.hidden=false;
+    const tick=()=>{
+      if(serial!==requestSerial||current?.kind!=='youtube'||!ssAutoRedirect.checked){
+        cancelSSRedirect();return;
+      }
+      if(seconds<=0){cancelSSRedirect();window.location.assign(link);return}
+      ssCountdown.textContent='لم تتوفر صيغ في رَجْع. ستنتقل إلى خدمة SS الخارجية بعد '+seconds+' ثوانٍ. يمكنك إلغاء الانتقال.';
+      seconds--;
+      ssTimer=setTimeout(tick,1000);
+    };
+    tick();
+  }
+  ssCancel.addEventListener('click',cancelSSRedirect);
+  ssAutoRedirect.addEventListener('change',()=>{
+    if(!ssAutoRedirect.checked)cancelSSRedirect();
+    else if(current?.kind==='youtube' && !!error && !loading)offerSSRedirect(requestSerial);
+  });
+
   function updateSSFallback(){
     const isYoutube=current?.kind==='youtube';
     ssFallback.hidden=!isYoutube;
@@ -201,7 +234,11 @@
         error='لم تستجب الخدمة السحابية، جاري تجربة اتصال جهازك المباشر بمزودي الخدمة المجانية...';
         render();
         const success=await browserFallback(id,serial);
-        if(!success&&serial===requestSerial)error='لم تتوفر صيغ تنزيل لهذا الرابط الآن؛ قد يتطلب المقطع تسجيل دخول أو تحققًا من يوتيوب.';
+        if(!success&&serial===requestSerial){
+          error='لم تتوفر صيغ تنزيل لهذا الرابط الآن؛ قد يتطلب المقطع تسجيل دخول أو تحققًا من يوتيوب.';
+          updateSSFallback();
+          offerSSRedirect(serial);
+        }
         return;
       }
       options=(Array.isArray(json.streams)?json.streams:[]).filter(s=>s&&
@@ -216,12 +253,17 @@
       if(!options.length)error='لم يُرجع مزوّد التنزيل أي ملف قابل للحفظ.';
       if(json.title)$('formatIntro').textContent=json.title;
     }catch(e){
-      if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=await browserFallback(id,serial);if(!success&&serial===requestSerial)error='تعذر الاتصال بخدمة تنزيل يوتيوب لهذا الرابط. حاول مجددًا لاحقًا.';}
+      if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=await browserFallback(id,serial);if(!success&&serial===requestSerial){
+          error='تعذر الاتصال بخدمة تنزيل يوتيوب لهذا الرابط. حاول مجددًا لاحقًا.';
+          updateSSFallback();
+          offerSSRedirect(serial);
+        }}
     }finally{
       if(serial===requestSerial){loading=false;render();}
     }
   }
   function resetNetwork(){
+    cancelSSRedirect();
     requestSerial++;
     if(controller){controller.abort();controller=null}
     options=[];chosen=null;loading=false;error='';
