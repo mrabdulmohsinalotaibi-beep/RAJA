@@ -109,12 +109,22 @@
   });
   $('browseMedia')?.addEventListener('click', () => {
     const raw = $('url').value.trim();
-    const yt = window.rajaYoutubeId?.(raw);
-    window.rajaShowPlayer?.();
-    if (yt) window.rajaOpenYoutube?.(yt);
-    else if (raw) $('check').click();
+    const id = window.rajaYoutubeId?.(raw);
+    if (!raw) {
+      $('pasteStatus').textContent = 'ألصق رابط فيديو أو ملف وسائط أولًا، ثم اضغط زر المتصفح لمشاهدته.';
+      $('url').focus();
+      return;
+    }
+    if (id) {
+      window.rajaShowPlayer?.();
+      window.rajaOpenYoutube?.(id);
+      $('playerDetails')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      $('check').click();
+      $('pasteStatus').textContent = 'يمكن فتح رابط ملف الوسائط بعد التعرف على صيغته.';
+    }
   });
-    $('url')?.addEventListener('keydown', event => {
+  $('url')?.addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); $('check').click(); }
   });
   window.rajaSwitchTab = switchTab;
