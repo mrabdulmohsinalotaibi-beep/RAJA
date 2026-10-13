@@ -86,10 +86,30 @@ async function main() {
   console.log('DOWNLOAD_ANCHOR_HREF', directHref);
   assert.ok(directHref && directHref.includes('/api/download?'),'native download anchor must have server URL');
 
-  const downloadEvent=page.waitForEvent('download',{timeout:25000});
+  await page.evaluate(() => {
+    const el=document.querySelector('#formatDownload');
+    el.addEventListener('click',e=>{
+      document.body.dataset.didClick='true';
+      setTimeout(()=>{
+        document.body.dataset.wasPrevented=String(e.defaultPrevented);
+        document.body.dataset.clickHref=el.href;
+      },0);
+    });
+  });
+  const downloadEvent=page.waitForEvent('download',{timeout:7000}).catch(()=>null);
   await page.locator('#formatDownload').click();
   const downloaded=await downloadEvent;
-  assert.match(downloaded.suggestedFilename(),/\.mp4$/i);
+  const debugClick=await page.evaluate(()=>({
+    didClick:document.body.dataset.didClick,
+    defaultPrevented:document.body.dataset.wasPrevented,
+    downloadHref:document.querySelector('#formatDownload')?.href,
+    downloadDisabled:document.querySelector('#formatDownload')?.getAttribute('aria-disabled'),
+    downloadStatus:document.querySelector('#formatNotice')?.textContent?.slice(0,230),
+    bodyClickHref:document.body.dataset.clickHref
+  }));
+  console.log('DOWNLOAD_CLICK_DIAGNOSTIC',JSON.stringify(debugClick));
+  assert.ok(downloaded,'browser download event was not emitted');
+  assert.match(downloaded.suggestedFilename(),/\\.mp4$/i);
   const dlPath=await downloaded.path();
   assert.ok(dlPath,'downloaded file path missing');
   console.log('PASS: Browser accepted attachment '+downloaded.suggestedFilename());
