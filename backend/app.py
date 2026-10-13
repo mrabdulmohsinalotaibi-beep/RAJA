@@ -35,7 +35,8 @@ VIDEO_ID = re.compile(r"^[a-zA-Z0-9_-]{11}$")
 ACTIVE_DOWNLOADS = asyncio.Semaphore(2)
 RATE: dict[str, deque] = defaultdict(deque)
 RATE_LOCK = asyncio.Lock()
-MAX_REQUESTS_PER_HOUR = 100
+MAX_REQUESTS_PER_HOUR = 30
+CLIENT_GROUPS = [('tv', 'web_safari'), ('android_vr', 'web_embedded')]
 
 
 def canonical_url(raw: str) -> tuple[str, str]:
@@ -66,8 +67,8 @@ def canonical_url(raw: str) -> tuple[str, str]:
         raise HTTPException(400, "أدخل رابط فيديو YouTube صالحًا.") from exc
 
 
-def youtube_options() -> dict:
-    return {
+def youtube_options(clients: tuple[str, ...] | None = None) -> dict:
+    options = {
         "noplaylist": True,
         "extract_flat": False,
         "quiet": True,
@@ -81,11 +82,20 @@ def youtube_options() -> dict:
         "age_limit": 18,
         "js_runtimes": {"node": {"path": "/usr/local/bin/node"}},
     }
+    if clients:
+        options["extractor_args"] = {"youtube": {"player_client": list(clients)}}
+    return options
 
 
 def extract_info(url: str) -> dict:
-    with YoutubeDL(youtube_options()) as ydl:
-        return ydl.extract_info(url, download=False)
+    last_error = None
+    for clients in CLIENT_GROUPS:
+        try:
+            with YoutubeDL(youtube_options(clients)) as ydl:
+                return ydl.extract_info(url, download=False)
+        except DownloadError as exc:
+            last_error = exc
+    raise last_error or DownloadError("No accessible YouTube player client")
 
 
 def check_info(info: dict) -> None:
@@ -155,7 +165,7 @@ def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
             return "Video exceeds free tier duration"
         return None
 
-    opts = youtube_options()
+    opts = youtube_options(CLIENT_GROUPS[0])
     opts.update({
         "skip_download": False,
         "outtmpl": {"default": os.path.join(directory, "%(id)s.%(ext)s")},
@@ -175,10 +185,21 @@ def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
             f"best[height<={quality}][ext=mp4]"
         )
         opts["merge_output_format"] = "mp4"
-    with YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    info = None
+    last_error = None
+    for clients in CLIENT_GROUPS:
+        opts["extractor_args"] = {"youtube": {"player_client": list(clients)}}
+        try:
+            with YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+            break
+        except DownloadError as exc:
+            last_error = exc
+            for partial in Path(directory).iterdir():
+                if partial.is_file():
+                    partial.unlink(missing_ok=True)
     if not info:
-        raise RuntimeError("لم يتمكن yt-dlp من تنزيل المقطع.")
+        raise last_error or RuntimeError("لم يتمكن yt-dlp من تنزيل المقطع.")
     extension = ".mp3" if kind == "mp3" else ".mp4"
     files = [p for p in Path(directory).glob("*") if p.is_file() and p.suffix.lower() == extension]
     if not files:
