@@ -126,4 +126,4 @@ async function main() {
   await context.close();
   await browser.close();
 }
-main().catch(err=>{console.error('RAJA MOBILE TEST FAILURE',err,debug);process.exitCode=1;});
+main().catch(err=>{console.error('RAJA MOBILE TEST FAILURE',err,debug);process.exit(1);});
