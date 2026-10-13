@@ -90,6 +90,18 @@ async function main() {
   assert.match(await page.locator('#organizerClips').innerText(),/00:20.*00:40/);
   await page.locator('[data-tab-button="search"]').click();
   console.log('PASS: Personal favorites, local playlists and time ranges');
+  console.log('TEST: Organizer sync controls and account-aware storage');
+  assert.equal(await page.locator('#organizerSyncNow').count(),1);
+  assert.equal(await page.locator('#organizerKeepLocal').count(),1);
+  assert.equal(await page.locator('#organizerUseCloud').count(),1);
+  assert.equal(await page.locator('#organizerConflict').isHidden(),true);
+  const local=await page.evaluate(()=>JSON.parse(localStorage.getItem('raja-organizer-local')));
+  assert.equal(local.favorites[0].videoId,ID);
+  assert.equal(local.playlists[0].items[0],ID);
+  assert.equal(local.clips[0].start,20);
+  assert.equal(local.clips[0].end,40);
+  console.log('PASS: Organizer data structure and safe sync controls');
+
 
 
   console.log('TEST: Shared YouTube link and format discovery');
