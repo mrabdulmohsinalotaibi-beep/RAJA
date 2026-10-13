@@ -91,6 +91,7 @@ async function main() {
   await page.locator('[data-tab-button="search"]').click();
   console.log('PASS: Personal favorites, local playlists and time ranges');
   console.log('TEST: Organizer sync controls and account-aware storage');
+  await page.locator('#organizerSyncNow').waitFor({state:'attached',timeout:30000});
   assert.equal(await page.locator('#organizerSyncNow').count(),1);
   assert.equal(await page.locator('#organizerKeepLocal').count(),1);
   assert.equal(await page.locator('#organizerUseCloud').count(),1);
