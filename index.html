@@ -129,6 +129,18 @@ input{background:#2c2c2c;border-color:#606060}
 .ss-fallback-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:#a67b40;border-radius:12px;padding:12px 18px;color:#fff;text-decoration:none;font-weight:750}
 .ss-fallback-link:hover{background:#bc8f50}
 .ss-auto-label{display:flex;align-items:center;gap:9px;font-size:13px;line-height:1.7;color:#f0e3cf;margin:0 0 10px}.ss-auto-label input{accent-color:#c29960;min-width:18px;min-height:18px}.ss-countdown{margin:6px 0 8px!important}.ss-cancel{background:#444;color:#fff;border:1px solid #76664f;padding:8px 14px;margin:0 0 10px}
+
+.org-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0;border-bottom:1px solid #59534b}
+.org-desc{display:flex;flex-direction:column;overflow-wrap:anywhere;min-width:0}
+.org-desc small{font-size:12px}
+.org-actions{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}
+.org-btn{font-size:13px;padding:8px 11px;background:#55493a;border:1px solid #847052}
+.org-list{padding:14px;margin:12px 0;background:#35332e;border:1px solid #5b4b37;border-radius:13px}
+#organizerCount{color:#ceb391}
+#organizerStatus{min-height:28px}
+#organizerPlaylistName,#organizerTitle{flex:1;min-width:150px}
+.raja-nav-inner{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(max-width:500px){.raja-nav{font-size:11px}.org-item{align-items:stretch;flex-direction:column}.org-actions{gap:5px}}
 </style></head><body><main>
 <header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small><div class="raja-account" id="rajaAccount" hidden><div class="raja-account-id"><strong id="rajaAccountName"></strong><small id="rajaAccountEmail"></small></div><button id="rajaLogout" class="raja-signout" type="button">خروج</button></div></header>
 <section class="raja-panel" data-tab-panel="search">
@@ -196,6 +208,33 @@ input{background:#2c2c2c;border-color:#606060}
 <div id="localItems" aria-live="polite"></div><p id="localStorageUsage" class="library-note"></p>
 <small>روابط YouTube المحفوظة كاختصار ليست ملفات فيديو. الملفات المحفوظة داخل هذه المكتبة قد تختفي إذا حذفت بيانات المتصفح أو التطبيق؛ استخدم زر «حفظ في الملفات» لإنشاء نسخة مستقلة.</small></div>
 </section>
+<section class="raja-panel" data-tab-panel="organizer" hidden id="organizerSection">
+<h1 class="raja-section-title">مفضلتي وقوائم التشغيل</h1>
+<p class="raja-section-intro">نظم روابط YouTube في قوائم خاصة، وشغّل جزءًا من الفيديو بوقت بداية ونهاية. عند تفعيل Google تتم مزامنة هذه البيانات بين أجهزتك.</p>
+<p id="organizerStatus" role="status" aria-live="polite"></p><p id="organizerCount"></p>
+<section class="card">
+<h2>المفضلة</h2><p class="raja-tip">ألصق رابط الفيديو أولًا في قسم «البحث» ثم ارجع هنا لإضافته.</p>
+<div class="line"><input id="organizerTitle" type="text" maxlength="120" placeholder="اسم للمقطع (اختياري)" aria-label="اسم الفيديو"><button id="organizerFavoriteAdd" type="button">إضافة إلى المفضلة</button></div>
+<div id="organizerFavorites"></div>
+</section>
+<section class="card">
+<h2>قوائم التشغيل</h2>
+<div class="line"><input id="organizerPlaylistName" maxlength="80" placeholder="اسم قائمة التشغيل" aria-label="اسم قائمة التشغيل"><button id="organizerNewPlaylist" type="button">إنشاء قائمة</button></div>
+<div id="organizerPlaylists"></div>
+</section>
+<section class="card">
+<h2>أجزاء محددة من الفيديو</h2><p class="raja-tip">اكتب الأوقات بالدقائق والثواني مثل 02:30 أو بالساعات 01:02:30. يستخدم التشغيل مشغل YouTube الرسمي وقد يعرض إعلاناته.</p>
+<form id="organizerClipForm">
+<label class="wide">عنوان الجزء<input id="organizerClipTitle" maxlength="100" placeholder="مقطع مختصر"></label>
+<label>يبدأ من<input id="organizerStart" required placeholder="00:30" inputmode="numeric"></label>
+<label>ينتهي عند<input id="organizerEnd" required placeholder="03:15" inputmode="numeric"></label>
+<label class="wide">تذكير بالموعد (اختياري)<input id="organizerRemind" type="datetime-local"></label>
+<button class="wide" type="submit">حفظ المقطع المحدد</button>
+</form>
+<div id="organizerClips"></div>
+<small>التذكيرات تظهر عندما يكون رَجْع مفتوحًا؛ لا ترسل إشعارات في الخلفية أو تشغّل الفيديو دون تفاعل.</small>
+</section>
+</section>
 <section class="raja-panel" data-tab-panel="settings" hidden>
 <h1 class="raja-section-title">الإعدادات</h1><div class="raja-settings-item"><h3>حسابي في رَجْع</h3><p id="rajaAuthStatus">جارٍ التحقق من حالة الدخول...</p><p id="rajaAuthInfo" class="raja-tip"></p></div>
 <div class="raja-settings-list">
@@ -211,6 +250,7 @@ input{background:#2c2c2c;border-color:#606060}
 <button type="button" class="raja-nav active" data-tab-button="search" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16.3 16.3 5 5"/></svg><span>البحث</span></button>
 <button type="button" class="raja-nav" data-tab-button="downloads"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v11m0 0 4-4m-4 4-4-4"/></svg><span>التنزيلات</span></button>
 <button type="button" class="raja-nav" data-tab-button="files"><svg viewBox="0 0 24 24"><path d="M3 7a3 3 0 0 1 3-3h4l2 2h6a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3Z"/></svg><span>ملفاتي</span></button>
+<button type="button" class="raja-nav" data-tab-button="organizer"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16M8 5v0M8 12v0M8 19v0"/></svg><span>قوائمي</span></button>
 <button type="button" class="raja-nav" data-tab-button="settings"><svg viewBox="0 0 24 24"><path d="M9.4 2.7 10 1.5h4l.6 1.2 2 .8 1.3-.4 2.8 2.8-.4 1.3.8 2 1.2.6v4l-1.2.6-.8 2 .4 1.3-2.8 2.8-1.3-.4-2 .8-.6 1.2h-4l-.6-1.2-2-.8-1.3.4-2.8-2.8.4-1.3-.8-2-1.2-.6v-4l1.2-.6.8-2-.4-1.3 2.8-2.8 1.3.4Z"/><circle cx="12" cy="12" r="3"/></svg><span>الإعدادات</span></button>
 </div></nav>
 <div id="rajaAuthGate" class="raja-auth-overlay" hidden aria-label="تسجيل الدخول إلى رَجْع">
@@ -241,4 +281,4 @@ $('form').onsubmit=e=>{e.preventDefault();let u;try{u=new URL($('media').value);
 $('clear').onclick=()=>{if(confirm('مسح الجدولة المحلية؟')){localStorage.removeItem(key);v.removeAttribute('src');v.load();$('featured').textContent='لم يُضف مقطع اليوم بعد.';refresh()}};refresh();
 
 window.rajaLoadMedia=load;window.rajaOpenYoutube=openYouTube;window.rajaYoutubeId=youtubeId;
-</script><script src="/auth-client.js" defer></script><script src="/library.js" defer></script><script src="/format-picker.js" defer></script><script src="/app-shell.js" defer></script></body></html>
+</script><script src="/auth-client.js" defer></script><script src="/library.js" defer></script><script src="/format-picker.js" defer></script><script src="/app-shell.js" defer></script><script src="/organizer.js" defer></script></body></html>
