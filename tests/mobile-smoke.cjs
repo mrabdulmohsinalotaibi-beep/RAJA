@@ -59,17 +59,38 @@ async function main() {
       body
     });
   });
-  console.log('TEST: Mobile layout and four tabs');
+  console.log('TEST: Mobile layout and five tabs');
   await page.goto(BASE, {waitUntil:'domcontentloaded',timeout:40000});
   await page.waitForFunction(() => document.querySelector('#check')?.getAttribute('aria-label')==='عرض صيغ الفيديو والصوت',{timeout:20000});
-  assert.equal(await page.locator('[data-tab-button]').count(),4);
+  assert.equal(await page.locator('[data-tab-button]').count(),5);
   const overflow=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
   assert.ok(overflow.width<=overflow.viewport+2,'horizontal overflow: '+JSON.stringify(overflow));
-  for(const tab of ['files','downloads','settings','search']){
+  for(const tab of ['files','downloads','organizer','settings','search']){
     await page.locator('[data-tab-button="'+tab+'"]').click();
     assert.equal(await page.locator('[data-tab-panel="'+tab+'"]').isVisible(),true,'tab '+tab+' not visible');
   }
   console.log('PASS: Tabs, viewport, mobile navigation');
+
+  console.log('TEST: Favorites, playlists and time-clipped YouTube segment');
+  await page.locator('#url').fill(EXAMPLE);
+  await page.locator('[data-tab-button="organizer"]').click();
+  await page.locator('#organizerTitle').fill('مقطع مفضل');
+  await page.locator('#organizerFavoriteAdd').click();
+  assert.match(await page.locator('#organizerFavorites').innerText(),/مقطع مفضل/);
+  await page.locator('#organizerPlaylistName').fill('قائمتي الخاصة');
+  await page.locator('#organizerNewPlaylist').click();
+  assert.match(await page.locator('#organizerPlaylists').innerText(),/قائمتي الخاصة/);
+  await page.locator('#organizerPlaylists button').filter({hasText:'إضافة الرابط الحالي'}).click();
+  assert.match(await page.locator('#organizerPlaylists').innerText(),/dQw4w9WgXcQ/);
+  await page.locator('#organizerClipTitle').fill('الجزء المحدد');
+  await page.locator('#organizerStart').fill('00:20');
+  await page.locator('#organizerEnd').fill('00:40');
+  await page.locator('#organizerClipForm button[type="submit"]').click();
+  assert.match(await page.locator('#organizerClips').innerText(),/الجزء المحدد/);
+  assert.match(await page.locator('#organizerClips').innerText(),/00:20.*00:40/);
+  await page.locator('[data-tab-button="search"]').click();
+  console.log('PASS: Personal favorites, local playlists and time ranges');
+
 
   console.log('TEST: Shared YouTube link and format discovery');
   await page.locator('#url').fill(EXAMPLE);
