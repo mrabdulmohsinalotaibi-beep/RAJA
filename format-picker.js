@@ -4,25 +4,6 @@
   const $ = id => document.getElementById(id);
   const picker = $('formatChooser');
   const input = $('url');
-  const cobaltButton = $('formatExternal');
-  const cobaltHelp = $('formatExternalHelp');
-  function updateExternal(){
-    const visible=current?.kind==='youtube';
-    cobaltButton.hidden=!visible;
-    cobaltHelp.hidden=!visible;
-  }
-  cobaltButton.addEventListener('click',()=>{
-    if(current?.kind!=='youtube')return;
-    const youtubeURL='https://www.youtube.com/watch?v='+encodeURIComponent(current.id);
-    const cobaltURL='https://cobalt.tools/#'+encodeURIComponent(youtubeURL);
-    const link=document.createElement('a');
-    link.href=cobaltURL;
-    link.target='_blank';
-    link.rel='noopener noreferrer';
-    document.body.appendChild(link); link.click(); link.remove();
-    say('فتحنا Cobalt في صفحة مستقلة، مع تمرير رابط يوتيوب. اختر صيغة الصوت أو الفيديو هناك ثم احفظ الملف في تنزيلات جهازك. قد لا يدعم كل المقاطع.',false);
-  });
-
   const SUPPORTED = {
     MP4:'فيديو MP4', WEBM:'فيديو WebM', M4A:'صوت M4A',
     MP3:'صوت MP3', OPUS:'صوت OPUS', OGG:'صوت OGG',
@@ -215,14 +196,14 @@
   function inspect(silent=false,force=false){
     const data=parse(input.value);
     if(!data){
-      resetNetwork();current=null;picker.hidden=true;updateExternal();
+      resetNetwork();current=null;picker.hidden=true;
       if(!silent)$('notice').textContent='أدخل رابط يوتيوب أو رابط ملف وسائط مباشر صحيح.';
       return false;
     }
     if(current?.url===data.url&&!force)return true;
     resetNetwork();
     current=data;
-    picker.hidden=false;updateExternal();
+    picker.hidden=false;
     $('formatSource').textContent=data.kind==='youtube'?'رابط YouTube':'ملف مباشر';
     $('formatIntro').textContent=data.kind==='youtube'?'اكتشاف صيغ الفيديو والصوت المتاحة...':'تنزيل الملف بصيغته الأصلية';
     $('formatPreview').textContent=data.kind==='youtube'?'مشاهدة الفيديو':'تشغيل الملف';
