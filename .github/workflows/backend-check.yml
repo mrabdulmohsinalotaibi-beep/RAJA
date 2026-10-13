@@ -1,0 +1,30 @@
+name: RAJA backend checks
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-check.yml'
+  workflow_dispatch:
+jobs:
+  docker-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Python syntax
+        run: python -m py_compile backend/app.py
+      - name: Build YouTube processing image
+        run: docker build -t raja-media -f backend/Dockerfile backend
+      - name: Start service
+        run: docker run -d --rm -p 10000:10000 --name raja-media raja-media
+      - name: Verify health endpoint
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent --show-error http://localhost:10000/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs raja-media
+          exit 1
