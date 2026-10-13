@@ -65,6 +65,10 @@
     const selected=current?.kind==='youtube'?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
     const ready=!!selected && !loading;
     b.disabled=!ready;
+    const keep=$('formatKeep');
+    const canSaveVideo=current?.kind==='youtube'&&ready&&selected.backend&&['mp4','mp3'].includes(selected.format);
+    keep.disabled=!!(current?.kind==='youtube'&&loading);
+    keep.textContent=canSaveVideo?'حفظ الملف داخل ملفاتي':current?.kind==='youtube'?'حفظ رابط المقطع':'حفظ الملف في ملفاتي';
     b.textContent=ready?'تنزيل '+selected.format.toUpperCase()+' إلى جهازي':loading?'جاري فحص الصيغ...':'لا توجد صيغة تنزيل متاحة';
     if(current?.kind==='youtube'){
       if(loading)say('يجري فحص صيغ MP4 والصوت من مصادر مجانية. انتظر النتيجة...');
@@ -239,8 +243,19 @@
     else window.rajaLoadMedia(current.url,'وسائط');
     $('player').scrollIntoView({behavior:'smooth',block:'center'});
   };
-  $('formatKeep').onclick=()=>{
+  $('formatKeep').onclick=async()=>{
     if(!current)return;
+    const b=$('formatKeep');
+    const selected=current.kind==='youtube'?options[chosen]:null;
+    if(selected?.backend&&['mp4','mp3'].includes(selected.format)){
+      b.disabled=true;
+      const saved=await window.rajaLibrarySaveYouTubeMedia?.({
+        videoId:current.id, kind:selected.kind, format:selected.format, quality:selected.quality
+      });
+      b.disabled=false;
+      if(saved)window.rajaSwitchTab?.('files');
+      return;
+    }
     $('addToLibrary')?.click();
     window.rajaSwitchTab?.('files');
   };
