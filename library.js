@@ -5,15 +5,22 @@ const say = (s, bad=false) => { $('localStatus').textContent=s; $('localStatus')
 const fmt = n => n > 1048576 ? (n/1048576).toFixed(1)+' MB' : (n/1024).toFixed(0)+' KB';
 const MAX = 400*1048576;
 let dbOpen, previewURL = '';
-function db(){
-  if(!dbOpen) dbOpen=new Promise((ok,no)=>{
-    const r=indexedDB.open('raja-local-library',1);
-    r.onupgradeneeded=()=>{
-      if(!r.result.objectStoreNames.contains('items')) r.result.createObjectStore('items',{keyPath:'id'});
-      if(!r.result.objectStoreNames.contains('blobs')) r.result.createObjectStore('blobs',{keyPath:'id'});
-    };
-    r.onsuccess=()=>ok(r.result); r.onerror=()=>no(r.error);
-  });
+async function db(){
+  if(!dbOpen) dbOpen=(async()=>{
+    const auth=await (window.rajaAuthReady||Promise.resolve({configured:false,user:null}));
+    if(auth?.configured && !auth.user?.id)throw Error('يرجى تسجيل الدخول أولًا.');
+    const name=auth?.configured
+      ? 'raja-personal-library-'+String(auth.user.id).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,100)
+      : 'raja-local-library';
+    return new Promise((ok,no)=>{
+      const r=indexedDB.open(name,1);
+      r.onupgradeneeded=()=>{
+        if(!r.result.objectStoreNames.contains('items'))r.result.createObjectStore('items',{keyPath:'id'});
+        if(!r.result.objectStoreNames.contains('blobs'))r.result.createObjectStore('blobs',{keyPath:'id'});
+      };
+      r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);
+    });
+  })();
   return dbOpen;
 }
 async function write(item,blob){
