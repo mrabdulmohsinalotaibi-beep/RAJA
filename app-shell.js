@@ -3,18 +3,23 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const HISTORY_KEY = 'raja-download-requests-v1';
+  const historyKey = () => {
+    const auth=window.rajaAuthState?.();
+    return auth?.configured && auth.user?.id
+      ? 'raja-download-requests-v1-'+String(auth.user.id).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,100)
+      : auth?.configured ? 'raja-download-requests-v1-locked' : 'raja-download-requests-v1';
+  };
   const PANELS = ['search', 'downloads', 'files', 'settings'];
   let currentTab = 'search';
 
   function storedHistory() {
     try {
-      const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      const value = JSON.parse(localStorage.getItem(historyKey()) || '[]');
       return Array.isArray(value) ? value.slice(0, 75) : [];
     } catch { return []; }
   }
   function setHistory(items) {
-    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 75))); }
+    try { localStorage.setItem(historyKey(), JSON.stringify(items.slice(0, 75))); }
     catch { /* Storage may be disabled. */ }
   }
   function switchTab(name) {
