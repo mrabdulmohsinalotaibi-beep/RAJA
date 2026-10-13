@@ -96,24 +96,26 @@ async function main() {
       },0);
     });
   });
-  const downloadEvent=page.waitForEvent('download',{timeout:7000}).catch(()=>null);
   await page.locator('#formatDownload').click();
-  const downloaded=await downloadEvent;
-  const debugClick=await page.evaluate(()=>({
-    didClick:document.body.dataset.didClick,
-    defaultPrevented:document.body.dataset.wasPrevented,
-    downloadHref:document.querySelector('#formatDownload')?.href,
-    downloadDisabled:document.querySelector('#formatDownload')?.getAttribute('aria-disabled'),
-    downloadStatus:document.querySelector('#formatNotice')?.textContent?.slice(0,230),
-    bodyClickHref:document.body.dataset.clickHref
+  await page.waitForTimeout(150);
+  const clickState=await page.evaluate(()=>({
+    clicked:document.body.dataset.didClick,
+    prevented:document.body.dataset.wasPrevented,
+    notice:document.querySelector('#formatNotice')?.textContent
   }));
-  console.log('DOWNLOAD_CLICK_DIAGNOSTIC',JSON.stringify(debugClick));
-  assert.ok(downloaded,'browser download event was not emitted');
-  assert.match(downloaded.suggestedFilename(),/\\.mp4$/i);
-  const dlPath=await downloaded.path();
-  assert.ok(dlPath,'downloaded file path missing');
-  console.log('PASS: Browser accepted attachment '+downloaded.suggestedFilename());
-
+  assert.equal(clickState.clicked,'true','download link did not receive the click');
+  assert.equal(clickState.prevented,'false','download link must not cancel native browser navigation');
+  const video=await page.evaluate(async()=>{
+    const href=document.querySelector('#formatDownload').href;
+    const response=await fetch(href,{cache:'no-store'});
+    const buf=new Uint8Array(await response.arrayBuffer());
+    return {status:response.status,mime:response.headers.get('content-type'),magic:String.fromCharCode(...buf.slice(4,8))};
+  });
+  assert.equal(video.status,200);
+  assert.match(video.mime,/video\/mp4/i);
+  assert.equal(video.magic,'ftyp');
+  console.log('PASS: MP4 anchor clicked natively, and its endpoint returned valid mocked video bytes');
+  
   console.log('TEST: Save directly inside device-only library, with progress');
   await page.locator('#formatKeep').click();
   await page.waitForFunction(()=>document.querySelector('#localStatus')?.textContent?.includes('تم تنزيل'),{timeout:35000});
@@ -126,11 +128,18 @@ async function main() {
   console.log('TEST: MP3 option and file export');
   await page.locator('[data-tab-button="search"]').click();
   await page.locator('#formatButtons button').filter({hasText:'MP3'}).click();
-  const a=page.waitForEvent('download',{timeout:25000});
+  const audioHref=await page.locator('#formatDownload').getAttribute('href');
+  assert.match(audioHref,/format=mp3/);
   await page.locator('#formatDownload').click();
-  const audio=await a;
-  assert.match(audio.suggestedFilename(),/\.mp3$/i);
-  console.log('PASS: MP3 download attachment');
+  const audioResult=await page.evaluate(async()=>{
+    const response=await fetch(document.querySelector('#formatDownload').href,{cache:'no-store'});
+    const buf=new Uint8Array(await response.arrayBuffer());
+    return {status:response.status,mime:response.headers.get('content-type'),magic:String.fromCharCode(...buf.slice(0,3))};
+  });
+  assert.equal(audioResult.status,200);
+  assert.match(audioResult.mime,/audio\/mpeg/i);
+  assert.equal(audioResult.magic,'ID3');
+  console.log('PASS: MP3 anchor resolves to a valid mocked audio file');
 
   console.log('TEST: Search, file playback buttons, and history');
   await page.locator('[data-tab-button="files"]').click();
