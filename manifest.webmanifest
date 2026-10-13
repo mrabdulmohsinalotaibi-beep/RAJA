@@ -1,14 +1,14 @@
 {
   "name": "رَجْع | RAJA",
   "short_name": "رَجْع",
-  "description": "مشغل وسائط عربي",
+  "description": "تصفح المقاطع وتنزيل الفيديو والصوت وحفظ الملفات على جهازك",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b1020",
-  "theme_color": "#101326",
+  "background_color": "#292929",
+  "theme_color": "#292929",
   "icons": [
     {
       "src": "/icon.svg",
@@ -16,5 +16,14 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
