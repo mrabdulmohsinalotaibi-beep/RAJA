@@ -29,3 +29,23 @@
 خادم Render المجاني قد يدخل وضع الخمول وتتأخر محاولته الأولى، وقد يمنع YouTube بعض الطلبات أو يطلب تسجيل الدخول. حد المعالجة 300 ميجابايت ومدة ساعة؛ مكتبة الجهاز المحددة داخل المتصفح 120 ميجابايت لفيديو YouTube الواحد. للنسخة المستقلة الدائمة استخدم تنزيل الجهاز، وليس مخزن المتصفح. راعِ حقوق النشر وشروط المواقع.
 
 راجع [backend/README.md](backend/README.md) للتفاصيل.
+
+## دخول كل مستخدم بحسابه Google
+
+جهز الموقع نظام Google OAuth الفردي وجلسات محفوظة في HttpOnly Secure SameSite=Lax، وعزل سجلات طلبات التنزيل والمكتبة الداخلية حسب Google account ID على نفس الجهاز. **هذه الميزة لا تصبح نشطة تلقائيًا إلا بعد إضافة متغيرات Google Cloud**. وهي مصادقة دخول للموقع، وليست تسجيل دخول إلى YouTube، ولا تستخدم جلسة Google الخاصة بالعميل في استخراج مقاطع YouTube المحمية.
+
+**إعداد Google Cloud بواسطة مالك الموقع (مرة واحدة):**
+
+1. افتح [Google Cloud Console](https://console.cloud.google.com/apis/credentials) وأعدّ شاشة موافقة Google Auth Platform حسب متطلبات Google.
+2. أنشئ OAuth Client ID من نوع **Web application**.
+3. أضف Authorized JavaScript origin: `https://raja.athat.app`.
+4. أضف Authorized redirect URI بالضبط: `https://raja.athat.app/api/auth/callback`.
+5. في Cloudflare Pages > مشروع `raja` > Settings > Variables and Secrets > Production، أضف:
+   - `GOOGLE_CLIENT_ID`: Client ID.
+   - `GOOGLE_CLIENT_SECRET`: Client Secret (Secret / encrypted).
+   - `RAJA_SESSION_SECRET`: قيمة قوية عشوائية لا تقل عن 32 حرفًا، مثل قيمة يولّدها `openssl rand -hex 32` (Secret / encrypted).
+6. انشر فرع `main` مجددًا في Cloudflare Pages، ثم جرّب تسجيل الدخول والخروج بحسابين مختلفين.
+
+**لا ترسل Client Secret أو Session Secret في محادثة أو ترفعها إلى GitHub**. ضعها داخل لوحة Cloudflare فقط. إذا كانت شاشة Google OAuth في وضع Testing، فقد تحتاج إلى إضافة حسابات المختبرين مؤقتًا أو نشر التطبيق وفق سياسة Google.
+
+الملفات المحلية في IndexedDB مفصولة بأسماء مساحات لكل حساب، لكنها **غير مشفّرة**. على الأجهزة المشتركة احمِ الجهاز ولا تعتبر هذه المكتبة خزنة أسرار. حذف بيانات المتصفح يحذف الملفات المحفوظة محليًا. لا يضمن OAuth تنزيل كل مقاطع YouTube؛ تبقى قيود المصدر والتنزيل منفصلة عن تسجيل دخول Google.
