@@ -21,9 +21,13 @@ async function main() {
     deviceScaleFactor:1,
     isMobile:true,
     hasTouch:true,
-    acceptDownloads:true
+    acceptDownloads:true,
+    serviceWorkers:'block'
   });
   const page = await context.newPage();
+  page.on('request', request => { if(request.url().includes('/api/download')) console.log('DOWNLOAD_REQUEST',request.method(),request.url()); });
+  page.on('response', response => { if(response.url().includes('/api/download')) console.log('DOWNLOAD_RESPONSE',response.status(),response.headers()['content-type']); });
+  page.on('framenavigated', frame => { if(frame===page.mainFrame()) console.log('MAIN_FRAME_NAVIGATED',frame.url().slice(0,140)); });
   page.on('pageerror', e => debug.push(String(e)));
   page.on('console', msg => { if(msg.type()==='error' && !/youtube|thumbnail/i.test(msg.text())) debug.push(msg.text()); });
   page.on('requestfailed', req => {
