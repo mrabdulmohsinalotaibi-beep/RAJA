@@ -128,6 +128,7 @@ input{background:#2c2c2c;border-color:#606060}
 .ss-fallback small{display:block;margin-top:10px;line-height:1.8;color:#c9c2b7}
 .ss-fallback-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:#a67b40;border-radius:12px;padding:12px 18px;color:#fff;text-decoration:none;font-weight:750}
 .ss-fallback-link:hover{background:#bc8f50}
+.ss-auto-label{display:flex;align-items:center;gap:9px;font-size:13px;line-height:1.7;color:#f0e3cf;margin:0 0 10px}.ss-auto-label input{accent-color:#c29960;min-width:18px;min-height:18px}.ss-countdown{margin:6px 0 8px!important}.ss-cancel{background:#444;color:#fff;border:1px solid #76664f;padding:8px 14px;margin:0 0 10px}
 </style></head><body><main>
 <header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small><div class="raja-account" id="rajaAccount" hidden><div class="raja-account-id"><strong id="rajaAccountName"></strong><small id="rajaAccountEmail"></small></div><button id="rajaLogout" class="raja-signout" type="button">خروج</button></div></header>
 <section class="raja-panel" data-tab-panel="search">
@@ -152,6 +153,10 @@ input{background:#2c2c2c;border-color:#606060}
 </div>
 <p id="formatNotice" role="status" aria-live="polite"></p>
 <div id="ssFallback" class="ss-fallback" hidden>
+  <label class="ss-auto-label"><input id="ssAutoRedirect" type="checkbox" checked> الانتقال تلقائيًا لطريقة SS إذا تعذر التنزيل من رَجْع</label>
+  <p id="ssCountdown" class="ss-countdown" role="status" hidden></p>
+  <button id="ssCancelRedirect" class="ss-cancel" type="button" hidden>إلغاء الانتقال</button>
+
   <p id="ssDescription">إذا لم يعمل التحميل من رَجْع، يمكنك تجربة طريقة إضافة ss إلى رابط يوتيوب.</p>
   <a id="ssFallbackLink" class="ss-fallback-link" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" href="https://www.ssyoutube.com/">فتح الرابط بصيغة SS <span aria-hidden="true">↗</span></a>
   <small>هذه خدمة خارجية مستقلة عن رَجْع ويوتيوب. ستختار الصيغ المتوفرة في موقعها، وليس داخل رَجْع. قد لا تعمل بعض المقاطع أو المناطق؛ انتبه للإعلانات ولا تُدخل بيانات Google أو كلمات المرور فيها.</small>
