@@ -230,6 +230,12 @@
       const r=await fetch('/api/formats?id='+encodeURIComponent(id),{signal:ac.signal,cache:'no-store'});
       const json=await r.json().catch(()=>({}));
       if(serial!==requestSerial||current?.id!==id)return;
+      if(r.status===401 || json.error==='google_signin_required'){
+        error='سجّل الدخول إلى رَجْع بحساب Google للمتابعة. هذا لا يسجّلك تلقائيًا في YouTube.';
+        cancelSSRedirect();
+        updateSSFallback();
+        return;
+      }
       if(!r.ok||!json.ok){
         error='لم تستجب الخدمة السحابية، جاري تجربة اتصال جهازك المباشر بمزودي الخدمة المجانية...';
         render();
