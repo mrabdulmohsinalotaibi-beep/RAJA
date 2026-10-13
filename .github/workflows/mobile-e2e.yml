@@ -11,6 +11,9 @@ on:
       - 'tests/**'
       - '.github/workflows/mobile-e2e.yml'
   workflow_dispatch:
+concurrency:
+  group: raja-mobile-ci-main
+  cancel-in-progress: true
 jobs:
   mobile-playwright:
     runs-on: ubuntu-latest
