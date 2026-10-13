@@ -153,6 +153,67 @@ $('persistStorage').addEventListener('click',async()=>{
   try{const granted=await navigator.storage?.persist?.();say(granted?'قبل المتصفح طلب الاحتفاظ ببيانات الموقع؛ احتفظ بنسخة احتياطية رغم ذلك.':'لم يضمن المتصفح استمرار حفظ البيانات؛ احفظ نسخة في ملفات جهازك.');}
   catch{say('لم يتمكن المتصفح من تثبيت التخزين.',true);}
 });
+
+const LOCAL_YOUTUBE_LIMIT=120*1024*1024;
+window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality}) {
+  if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)||!['mp4','mp3'].includes(format)||!['audio','video'].includes(kind)||!/^\d{2,4}$/.test(String(quality))) {
+    say('خيارات الحفظ غير صالحة.',true);
+    return false;
+  }
+  if(format==='mp4'&&kind!=='video'||format==='mp3'&&kind!=='audio')return false;
+  const params=new URLSearchParams({id:videoId,kind,format,quality:String(quality)});
+  const ctrl=new AbortController();
+  const timeout=setTimeout(()=>ctrl.abort(),180000);
+  const filename='raja-'+videoId+'.'+format;
+  const formatStatus=document.getElementById('formatNotice');
+  function announce(msg,bad=false){
+    say(msg,bad);
+    if(formatStatus){formatStatus.textContent=msg;formatStatus.classList.toggle('format-warning',bad);}
+  }
+  announce('جاري تنزيل '+filename+' إلى مكتبتك في هذا الجهاز...');
+  try{
+    const response=await fetch('/api/download?'+params,{signal:ctrl.signal,cache:'no-store'});
+    if(!response.ok){
+      const problem=await response.json().catch(()=>null);
+      throw Error(problem?.message||'تعذر تنزيل المقطع من YouTube ('+response.status+')');
+    }
+    const mime=response.headers.get('content-type')||'';
+    if(!mime.startsWith(format==='mp3'?'audio/':'video/'))throw Error('المصدر لم يعطِ ملف وسائط صالحًا.');
+    const expected=Number(response.headers.get('content-length')||0);
+    if(expected>LOCAL_YOUTUBE_LIMIT)throw Error('ملف كبير جدًا للحفظ الداخلي (الحد 120 ميجابايت). استخدم زر «تنزيل إلى جهازي» لحفظه في تطبيق الملفات.');
+    let blob;
+    if(response.body?.getReader){
+      const reader=response.body.getReader();
+      const chunks=[];let received=0;
+      while(true){
+        const {done,value}=await reader.read();
+        if(done)break;
+        if(value){
+          received+=value.byteLength;
+          if(received>LOCAL_YOUTUBE_LIMIT){
+            await reader.cancel();
+            throw Error('تجاوز الملف 120 ميجابايت. استخدم التنزيل المباشر إلى تطبيق الملفات.');
+          }
+          chunks.push(value);
+          const progress=expected?' ('+Math.min(99,Math.round(received/expected*100))+'٪)':' ('+fmt(received)+')';
+          announce('جاري حفظ '+filename+progress);
+        }
+      }
+      blob=new Blob(chunks,{type:mime});
+    }else{
+      blob=await response.blob();
+      if(blob.size>LOCAL_YOUTUBE_LIMIT)throw Error('الملف أكبر من مساحة الحفظ الداخلي المسموحة.');
+    }
+    if(!blob.size)throw Error('لم تصل بيانات الفيديو.');
+    await saveFile(new File([blob],filename,{type:mime}));
+    await refresh();
+    announce('تم تنزيل '+filename+' وحفظه بنجاح داخل «ملفاتي» على هذا الجهاز.');
+    return true;
+  }catch(err){
+    const msg=err.name==='AbortError'?'انتهت مهلة حفظ الملف.':err.name==='QuotaExceededError'?'المساحة المتاحة في هذا الجهاز لا تكفي.':(err.message||'تعذر حفظ الملف.');
+    announce(msg,true);return false;
+  }finally{clearTimeout(timeout)}
+};
 if(!window.indexedDB)say('هذا المتصفح لا يدعم مكتبة الملفات المحلية.',true);
 else refresh().catch(e=>say('تعذّر فتح المكتبة: '+e.message,true));
 })();
