@@ -82,6 +82,10 @@ async function main() {
   console.log('PASS: Format UI shows real choices');
 
   console.log('TEST: Direct MP4 download to device');
+  const directHref = await page.locator('#formatDownload').getAttribute('href');
+  console.log('DOWNLOAD_ANCHOR_HREF', directHref);
+  assert.ok(directHref && directHref.includes('/api/download?'),'native download anchor must have server URL');
+
   const downloadEvent=page.waitForEvent('download',{timeout:25000});
   await page.locator('#formatDownload').click();
   const downloaded=await downloadEvent;
