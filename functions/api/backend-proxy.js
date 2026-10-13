@@ -21,9 +21,9 @@ export async function proxiedFormats(request,env,id) {
   url.searchParams.set('url','https://www.youtube.com/watch?v='+id);
   let upstream;
   try{
-    upstream=await fetch(url.toString(),{method:'GET',headers:{'Accept':'application/json'},redirect:'error',signal:request.signal});
-  }catch{
-    return send({ok:false,error:'backend_unavailable',message:'خادم معالجة الوسائط غير متاح الآن؛ ربما يستيقظ من وضع الخمول.'},503);
+    upstream=await fetch(url.toString(),{method:'GET',headers:{'Accept':'application/json'},redirect:'follow'});
+  }catch(e){
+    return send({ok:false,error:'backend_unavailable',reason:e instanceof Error ? (e.name+':'+e.message).slice(0,160) : 'network_error',message:'خادم معالجة الوسائط غير متاح الآن؛ ربما يستيقظ من وضع الخمول.'},503);
   }
   const result=await upstream.json().catch(()=>null);
   if(!upstream.ok||!result?.ok){
@@ -50,9 +50,9 @@ export async function proxiedDownload(request,env,{id,format,kind,quality}) {
   url.searchParams.set('quality',String(quality));
   let upstream;
   try{
-    upstream=await fetch(url.toString(),{method:'GET',redirect:'error',signal:request.signal});
-  }catch{
-    return send({ok:false,error:'backend_unavailable',message:'لم يتصل رَجْع بخادم التنزيل. جرّب لاحقًا.'},503);
+    upstream=await fetch(url.toString(),{method:'GET',redirect:'follow'});
+  }catch(e){
+    return send({ok:false,error:'backend_unavailable',reason:e instanceof Error ? (e.name+':'+e.message).slice(0,160) : 'network_error',message:'لم يتصل رَجْع بخادم التنزيل. جرّب لاحقًا.'},503);
   }
   if(!upstream.ok) {
     const problem=await upstream.json().catch(()=>null);
