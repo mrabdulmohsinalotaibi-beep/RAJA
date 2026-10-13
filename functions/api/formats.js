@@ -79,10 +79,57 @@ async function probe(type,base,id){
   if(!list.length)throw new Error('no_streams');
   return {ok:true,provider:type,instance:base,title:String(data.title||'مقطع YouTube').slice(0,160),duration:Number(data.duration||data.lengthSeconds)||null,streams:list};
 }
+
+// Optional first-party extraction attempt through an undocumented YouTube client.
+// These formats can become unavailable whenever YouTube changes its playback API.
+const YT_API_KEY='AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
+const YT_CLIENTS=[
+ {name:'ANDROID_VR',version:'1.65.10',number:'28',ua:'com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',deviceMake:'Oculus',deviceModel:'Quest 3',androidSdkVersion:32,osName:'Android',osVersion:'12L'},
+ {name:'WEB_EMBEDDED_PLAYER',version:'2.20260708.00.00',number:'56',ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)'}
+];
+async function probeYouTube(id,client){
+  const context={client:{clientName:client.name,clientVersion:client.version,hl:'en',gl:'US'}};
+  for(const k of ['deviceMake','deviceModel','androidSdkVersion','osName','osVersion'])if(client[k])context.client[k]=client[k];
+  if(client.name==='WEB_EMBEDDED_PLAYER')context.thirdParty={embedUrl:'https://www.youtube.com/embed/'+id};
+  const body={context,videoId:id,contentCheckOk:true,racyCheckOk:true};
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),6500);
+  let res;
+  try{
+    res=await fetch('https://www.youtube.com/youtubei/v1/player?key='+YT_API_KEY,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json','User-Agent':client.ua,
+        'X-YouTube-Client-Name':client.number,'X-YouTube-Client-Version':client.version},
+      body:JSON.stringify(body),signal:ctrl.signal
+    });
+    if(!res.ok)throw new Error('innertube_http_'+res.status);
+    const json=await res.json();
+    if(json.playabilityStatus?.status!=='OK')throw new Error('youtube_'+String(json.playabilityStatus?.status||'blocked'));
+    const streams=[];
+    for(const entry of json.streamingData?.formats||[]){
+      const e=sanitize({url:entry.url,mimeType:entry.mimeType,quality:entry.qualityLabel||entry.quality,bitrate:entry.bitrate,size:entry.contentLength},'video');
+      if(e)streams.push(e);
+    }
+    for(const entry of json.streamingData?.adaptiveFormats||[]){
+      if(!String(entry.mimeType||'').startsWith('audio/'))continue;
+      const e=sanitize({url:entry.url,mimeType:entry.mimeType,quality:entry.audioQuality||entry.quality,bitrate:entry.bitrate,size:entry.contentLength},'audio');
+      if(e)streams.push(e);
+    }
+    if(!streams.length)throw new Error('youtube_formats_unavailable');
+    return {ok:true,provider:'youtube-'+client.name.toLowerCase(),instance:'youtube.com',title:String(json.videoDetails?.title||'مقطع YouTube').slice(0,160),duration:Number(json.videoDetails?.lengthSeconds)||null,streams};
+  }finally{clearTimeout(timer)}
+}
 const sources=[...PIPED.map(s=>['piped',s]),...INVIDIOUS.map(s=>['invidious',s])];
 export async function resolveVideo(id) {
   if(!/^[A-Za-z0-9_-]{11}$/.test(id))throw new Error('invalid_video_id');
   const errors=[];
+  // Attempt two lightweight client configurations before third-party mirrors.
+  const native=await Promise.all(YT_CLIENTS.map(async client=>{
+    try{return await probeYouTube(id,client);}
+    catch(e){errors.push({source:'youtube-'+client.name,reason:String(e.message||'blocked').slice(0,45)});return null;}
+  }));
+  const first=native.find(Boolean);
+  if(first)return {data:first,errors};
   // Small batches avoid flooding volunteer-hosted public services.
   for(let start=0;start<sources.length;start+=3){
     const batch=sources.slice(start,start+3);
