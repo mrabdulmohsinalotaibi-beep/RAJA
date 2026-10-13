@@ -6,6 +6,8 @@ on:
       - 'index.html'
       - 'format-picker.js'
       - 'app-shell.js'
+      - 'organizer.js'
+      - 'functions/api/organizer.js'
       - 'library.js'
       - 'sw.js'
       - 'tests/**'
