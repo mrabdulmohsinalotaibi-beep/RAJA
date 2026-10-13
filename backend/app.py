@@ -79,6 +79,7 @@ def youtube_options() -> dict:
         "ignoreerrors": False,
         "no_color": True,
         "age_limit": 18,
+        "js_runtimes": {"node": {"path": "/usr/local/bin/node"}},
     }
 
 
