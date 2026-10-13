@@ -32,7 +32,7 @@
   for (const b of document.querySelectorAll('[data-tab-button]')) b.addEventListener('click', () => switchTab(b.dataset.tabButton));
 
   function readableLabel(entry) {
-    if(entry.format) return entry.format + (entry.quality ? ' • ' + entry.quality + 'p' : '');
+    if(entry.format) return entry.format + (entry.quality ? ' • ' + entry.quality + (entry.format === 'MP3' ? ' kbps' : 'p') : '');
     return 'ملف وسائط';
   }
   function drawHistory() {
@@ -124,10 +124,15 @@
     if (details) details.open = true;
   };
   const params = new URLSearchParams(location.search);
-  const shared = params.get('url') || params.get('text');
-  if (shared && /^https?:\/\//i.test(shared.trim()) && shared.length < 1200) {
-    $('url').value = shared.trim();
+  const rawShare = params.get('url') || params.get('text') || '';
+  // Sharing from YouTube often includes descriptive text before the actual URL.
+  const match = rawShare.length < 2400 && rawShare.match(/https?:\/\/[^\s<>"']+/i);
+  const shared = match ? match[0].replace(/[),؛،.]+$/g, '') : '';
+  if (shared && shared.length < 1200) {
+    $('url').value = shared;
     $('url').dispatchEvent(new Event('input', { bubbles: true }));
+    $('pasteStatus').textContent = 'تم استلام الرابط المُشارك. اختر الصيغة لتنزيله.';
+    setTimeout(() => $('check')?.click(), 250);
   }
   switchTab('search');
 })();
