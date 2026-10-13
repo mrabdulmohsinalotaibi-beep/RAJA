@@ -28,3 +28,19 @@ jobs:
           done
           docker logs raja-media
           exit 1
+      - name: Probe example YouTube video formats (informational)
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import urllib.error
+          import urllib.request
+          url = 'http://127.0.0.1:10000/api/formats?url=https%3A%2F%2Fyoutu.be%2F-vVymc0wnLg'
+          try:
+              with urllib.request.urlopen(url, timeout=100) as response:
+                  data=response.read(1600).decode('utf-8', 'replace')
+                  print('HTTP', response.status, data)
+          except urllib.error.HTTPError as exc:
+              print('YouTube metadata not available from CI IP:', exc.code, exc.read(1000).decode('utf-8', 'replace'))
+          except Exception as exc:
+              print('Request error:', type(exc).__name__, str(exc)[:250])
+          PY
