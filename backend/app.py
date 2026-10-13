@@ -4,7 +4,6 @@ Processes one YouTube video at a time and sends the file to the requester's devi
 Requires ffmpeg, Python, yt-dlp. Never stores media permanently.
 """
 import asyncio
-import ipaddress
 import os
 import re
 import shutil
@@ -16,7 +15,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
@@ -36,7 +35,7 @@ VIDEO_ID = re.compile(r"^[a-zA-Z0-9_-]{11}$")
 ACTIVE_DOWNLOADS = asyncio.Semaphore(2)
 RATE: dict[str, deque] = defaultdict(deque)
 RATE_LOCK = asyncio.Lock()
-MAX_REQUESTS_PER_HOUR = 12
+MAX_REQUESTS_PER_HOUR = 100
 
 
 def canonical_url(raw: str) -> tuple[str, str]:
@@ -130,9 +129,8 @@ async def formats(request: Request, url: str = Query(..., max_length=500)) -> di
               (f.get("ext") == "mp4" or f.get("container") == "mp4")]
     audios = [f for f in formats if f.get("acodec") not in (None, "none")]
     sizes = sorted({int(f.get("height")) for f in videos if f.get("height") and int(f["height"]) <= 1080})
-    qualities = [q for q in QUALITY if any(n <= q for n in sizes)]
-    if sizes and not qualities:
-        qualities = [min(sizes)]
+    # List only ceilings for resolutions actually present (no phantom 1080p on 360p video).
+    qualities = sorted({next(q for q in QUALITY if q >= n) for n in sizes})
     choices = [{"format": "mp4", "quality": q, "kind": "video"} for q in qualities]
     if audios:
         choices.append({"format": "mp3", "quality": 192, "kind": "audio"})
@@ -147,6 +145,15 @@ async def formats(request: Request, url: str = Query(..., max_length=500)) -> di
 
 
 def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
+    def progress(info: dict) -> None:
+        if info.get("status") == "downloading" and info.get("downloaded_bytes", 0) > MAX_BYTES:
+            raise DownloadError("Video exceeds free tier file size")
+
+    def reject_long_video(info: dict, *, incomplete: bool = False) -> str | None:
+        if info.get("duration") and info["duration"] > MAX_DURATION:
+            return "Video exceeds free tier duration"
+        return None
+
     opts = youtube_options()
     opts.update({
         "skip_download": False,
@@ -154,6 +161,8 @@ def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
         "max_filesize": MAX_BYTES,
         "continuedl": False,
         "overwrites": True,
+        "progress_hooks": [progress],
+        "match_filter": reject_long_video,
     })
     if kind == "mp3":
         opts["format"] = "bestaudio/best"
@@ -162,8 +171,7 @@ def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
         # Prefer actual MP4 video plus M4A audio to avoid incompatible files.
         opts["format"] = (
             f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/"
-            f"best[height<={quality}][ext=mp4]/"
-            f"best[height<={quality}]"
+            f"best[height<={quality}][ext=mp4]"
         )
         opts["merge_output_format"] = "mp4"
     with YoutubeDL(opts) as ydl:
@@ -178,6 +186,11 @@ def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
     if path.stat().st_size > MAX_BYTES:
         raise RuntimeError("الملف أكبر من 300 ميجابايت المسموح بها على الخادم المجاني.")
     return path
+
+
+async def cleanup_temp(directory: str) -> None:
+    shutil.rmtree(directory, ignore_errors=True)
+    ACTIVE_DOWNLOADS.release()
 
 
 @app.get("/api/download")
@@ -203,7 +216,7 @@ async def download(
             filename=f"raja-{video_id}.{format}",
             media_type="audio/mpeg" if format == "mp3" else "video/mp4",
             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
-            background=BackgroundTask(lambda: (shutil.rmtree(tempdir, ignore_errors=True), ACTIVE_DOWNLOADS.release())),
+            background=BackgroundTask(cleanup_temp, tempdir),
         )
     except DownloadError as exc:
         shutil.rmtree(tempdir, ignore_errors=True)
