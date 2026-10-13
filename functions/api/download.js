@@ -1,3 +1,4 @@
+import {proxiedDownload} from './backend-proxy.js';
 import {resolveVideo} from './formats.js';
 
 const allowed=new Set(['mp4','webm','m4a','mp3','ogg','opus']);
@@ -9,7 +10,7 @@ function filename(title,format){
   const clean=String(title||'RAJA').replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').replace(/\s+/g,' ').trim().slice(0,100)||'RAJA';
   return {ascii:'raja-video.'+format,utf:"UTF-8''"+encodeURIComponent(clean+'.'+format)};
 }
-export async function onRequestGet({request}){
+export async function onRequestGet({request,env}){
   const u=new URL(request.url);
   const id=u.searchParams.get('id')||'';
   const format=(u.searchParams.get('format')||'').toLowerCase();
@@ -17,6 +18,8 @@ export async function onRequestGet({request}){
   const kind=u.searchParams.get('kind')||'';
   if(!/^[a-zA-Z0-9_-]{11}$/.test(id))return jsonError('invalid_video_id',400);
   if(!allowed.has(format)||!['video','audio'].includes(kind))return jsonError('invalid_format',400);
+  const privateResult=await proxiedDownload(request,env,{id,format,kind,quality});
+  if(privateResult)return privateResult;
   const {data}=await resolveVideo(id);
   if(!data)return jsonError('sources_unavailable',503);
   const candidates=data.streams.filter(s=>s.format===format&&s.kind===kind);
