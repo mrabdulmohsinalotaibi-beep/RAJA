@@ -105,8 +105,25 @@ input{background:#2c2c2c;border-color:#606060}
 .format-download-anchor{display:flex;align-items:center;justify-content:center;background:var(--raja-gold,#af8244);border-radius:12px;padding:12px 17px;color:#fff;font:inherit;cursor:pointer;text-decoration:none;text-align:center;min-height:46px}
 .format-download-anchor[aria-disabled="true"]{opacity:.5;cursor:not-allowed;pointer-events:none}
 .format-download-anchor[aria-disabled="false"]:hover{filter:brightness(1.07)}
+
+/* Google individual sign-in */
+.raja-account{display:flex;align-items:center;gap:8px;margin-inline-start:auto}
+.raja-account-id{display:flex;flex-direction:column;max-width:190px;min-width:0;text-align:left;gap:1px}
+.raja-account-id strong,.raja-account-id small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.raja-account-id small{font-size:10px;color:#b8b8b8}
+.raja-signout{padding:7px 10px;font-size:12px;background:#454545;border:1px solid #727272}
+.raja-auth-overlay{position:fixed;z-index:70;inset:0;background:#292929;padding:20px;display:flex;align-items:center;justify-content:center;min-height:100svh}
+.raja-auth-card{width:min(430px,100%);background:#343434;border:1px solid #5e5344;border-radius:24px;padding:clamp(24px,7vw,42px);text-align:center;box-shadow:0 15px 55px #0004}
+.raja-auth-icon{width:74px;height:74px;border-radius:21px;background:#ae8244;display:grid;place-items:center;font-size:36px;font-weight:900;margin:0 auto 20px}
+.raja-auth-card h1{margin:4px 0 15px;font-size:29px}
+.raja-auth-card p{color:#cfcbc5;font-size:15px}
+.raja-auth-button{display:flex;align-items:center;justify-content:center;gap:12px;background:#f8f8f8;color:#242424;border-radius:12px;text-decoration:none;font-weight:750;padding:14px 18px;margin-top:24px}
+.raja-google-letter{font-size:24px;font-weight:900;color:#4285f4}
+.raja-auth-required body{overflow:hidden}
+.raja-auth-required .raja-bottom-nav{display:none}
+@media(max-width:480px){.raja-top-note{display:none}.raja-account-id{max-width:145px}}
 </style></head><body><main>
-<header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small></header>
+<header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small><div class="raja-account" id="rajaAccount" hidden><div class="raja-account-id"><strong id="rajaAccountName"></strong><small id="rajaAccountEmail"></small></div><button id="rajaLogout" class="raja-signout" type="button">خروج</button></div></header>
 <section class="raja-panel" data-tab-panel="search">
 <h1 class="raja-heading">البحث</h1>
 <div class="search-primary">
@@ -164,7 +181,7 @@ input{background:#2c2c2c;border-color:#606060}
 <small>روابط YouTube المحفوظة كاختصار ليست ملفات فيديو. الملفات المحفوظة داخل هذه المكتبة قد تختفي إذا حذفت بيانات المتصفح أو التطبيق؛ استخدم زر «حفظ في الملفات» لإنشاء نسخة مستقلة.</small></div>
 </section>
 <section class="raja-panel" data-tab-panel="settings" hidden>
-<h1 class="raja-section-title">الإعدادات</h1>
+<h1 class="raja-section-title">الإعدادات</h1><div class="raja-settings-item"><h3>حسابي في رَجْع</h3><p id="rajaAuthStatus">جارٍ التحقق من حالة الدخول...</p><p id="rajaAuthInfo" class="raja-tip"></p></div>
 <div class="raja-settings-list">
 <div class="raja-settings-item"><h3>تثبيت رَجْع</h3><p>يمكن إضافة رَجْع إلى الشاشة الرئيسية دون متجر التطبيقات.</p><button id="install" type="button" hidden>تثبيت التطبيق</button><small id="installHelp">في Safari اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية».</small></div>
 <div class="raja-settings-item"><h3>الخصوصية والتخزين</h3><p>التنزيلات تحفظ في جهاز المستخدم. «ملفاتي» منفصلة لكل متصفح وجهاز ولا تتزامن تلقائيًا.</p><small>يمكن للخادم تجهيز الملفات مؤقتًا حتى يبدأ تنزيلها، ثم يحذف الملفات المؤقتة. استخدم المحتوى الذي يسمح لك بتنزيله.</small></div>
@@ -179,7 +196,17 @@ input{background:#2c2c2c;border-color:#606060}
 <button type="button" class="raja-nav" data-tab-button="downloads"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v11m0 0 4-4m-4 4-4-4"/></svg><span>التنزيلات</span></button>
 <button type="button" class="raja-nav" data-tab-button="files"><svg viewBox="0 0 24 24"><path d="M3 7a3 3 0 0 1 3-3h4l2 2h6a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3Z"/></svg><span>ملفاتي</span></button>
 <button type="button" class="raja-nav" data-tab-button="settings"><svg viewBox="0 0 24 24"><path d="M9.4 2.7 10 1.5h4l.6 1.2 2 .8 1.3-.4 2.8 2.8-.4 1.3.8 2 1.2.6v4l-1.2.6-.8 2 .4 1.3-2.8 2.8-1.3-.4-2 .8-.6 1.2h-4l-.6-1.2-2-.8-1.3.4-2.8-2.8.4-1.3-.8-2-1.2-.6v-4l1.2-.6.8-2-.4-1.3 2.8-2.8 1.3.4Z"/><circle cx="12" cy="12" r="3"/></svg><span>الإعدادات</span></button>
-</div></nav><script>
+</div></nav>
+<div id="rajaAuthGate" class="raja-auth-overlay" hidden aria-label="تسجيل الدخول إلى رَجْع">
+  <div class="raja-auth-card">
+    <div class="raja-auth-icon" aria-hidden="true">ر</div>
+    <h1>مرحبًا بك في رَجْع</h1>
+    <p>سجّل الدخول بحساب Google الخاص بك لتنزيل المقاطع واستخدام مكتبتك الشخصية.</p>
+    <a id="rajaGoogleLogin" class="raja-auth-button" href="/api/auth/login"><span class="raja-google-letter">G</span> المتابعة باستخدام Google</a>
+    <p><small>لن نطلب كلمة مرورك، ولن نشارك حسابك مع أي مستخدم آخر.</small></p>
+  </div>
+</div>
+<script>
 const $=id=>document.getElementById(id),v=$('player'),key='raja_schedule';let downloadable='',blob='';
 let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('install').hidden=false});$('install').onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('install').hidden=true};if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));v.addEventListener('error',()=>{$('notice').textContent='تعذر تشغيل هذا الملف. تحقق من الرابط وصيغة الوسائط وصلاحيات الخادم.'});const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const entries=()=>{try{return JSON.parse(localStorage.getItem(key)||'[]')}catch{return []}};
@@ -198,4 +225,4 @@ $('form').onsubmit=e=>{e.preventDefault();let u;try{u=new URL($('media').value);
 $('clear').onclick=()=>{if(confirm('مسح الجدولة المحلية؟')){localStorage.removeItem(key);v.removeAttribute('src');v.load();$('featured').textContent='لم يُضف مقطع اليوم بعد.';refresh()}};refresh();
 
 window.rajaLoadMedia=load;window.rajaOpenYoutube=openYouTube;window.rajaYoutubeId=youtubeId;
-</script><script src="/library.js" defer></script><script src="/format-picker.js" defer></script><script src="/app-shell.js" defer></script></body></html>
+</script><script src="/auth-client.js" defer></script><script src="/library.js" defer></script><script src="/format-picker.js" defer></script><script src="/app-shell.js" defer></script></body></html>
