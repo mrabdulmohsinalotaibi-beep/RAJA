@@ -95,6 +95,12 @@ input{background:#2c2c2c;border-color:#606060}
 .raja-notice{font-size:13px;color:#c8bcaa;margin:8px 0}
 @media(min-width:740px){.raja-heading{margin-top:30px}.search-primary{min-height:85px}.raja-browse{padding:28px}.raja-panel{padding-top:24px}}
 @media(max-width:480px){main{padding:14px 16px 130px}.raja-top{min-height:60px}.raja-top-note{font-size:10px}.raja-heading{margin:18px 0 24px}.search-primary{min-height:65px;border-radius:18px}.search-primary .search-submit{width:68px}.search-primary .paste-btn{min-width:40px;padding:0 11px}.raja-nav{font-size:12px}.request-row{align-items:stretch;flex-direction:column}.request-row .quiet-btn{align-self:start}}
+
+.local-download-progress{margin:14px 0;padding:12px;background:#292929;border:1px solid #6b5b46;border-radius:12px}
+.local-progress-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:#e9d0a8;font-size:12px}
+.local-download-progress progress{display:block;width:100%;height:13px;margin-top:10px;accent-color:#af8244}
+.local-download-progress progress::-webkit-progress-bar{background:#49443d;border-radius:10px}
+.local-download-progress progress::-webkit-progress-value{background:#af8244;border-radius:10px}
 </style></head><body><main>
 <header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small></header>
 <section class="raja-panel" data-tab-panel="search">
@@ -118,6 +124,10 @@ input{background:#2c2c2c;border-color:#606060}
 <button id="formatKeep" type="button" class="lib-btn">حفظ في مكتبتي</button>
 </div>
 <p id="formatNotice" role="status" aria-live="polite"></p>
+<div id="localDownloadProgressWrap" class="local-download-progress" hidden aria-live="polite">
+  <div class="local-progress-head"><strong>حفظ الملف في «ملفاتي»</strong><span id="localDownloadProgressLabel">جارٍ التحضير...</span></div>
+  <progress id="localDownloadProgress" max="100" aria-label="تقدم حفظ الملف"></progress>
+</div>
 </div>
 <details class="raja-advanced" id="playerDetails"><summary>مشغّل الفيديو والصوت</summary>
 <section class="card"><h2>المشغّل <small id="date"></small></h2>
