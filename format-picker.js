@@ -61,10 +61,6 @@
     renderAction();
   }
   function renderAction(){
-    const external=$('formatExternal'), help=$('formatExternalHelp');
-    const isYouTube=current?.kind==='youtube';
-    external.hidden=!isYouTube;help.hidden=!isYouTube;
-    external.textContent=error?'جرّب التنزيل عبر Cobalt مجانًا ↗':'خيار مجاني آخر: Cobalt ↗';
     const b=$('formatDownload');
     const selected=current?.kind==='youtube'?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
     const ready=!!selected && !loading;
@@ -168,7 +164,7 @@
         error='لم تستجب الخدمة السحابية، جاري تجربة اتصال جهازك المباشر بمزودي الخدمة المجانية...';
         render();
         const success=await browserFallback(id,serial);
-        if(!success&&serial===requestSerial)error='لم تنجح مصادر رَجْع المجانية لهذا الرابط. جرّب زر «Cobalt» أدناه لفتحه تلقائيًا في خدمة تنزيل مجانية مستقلة.';
+        if(!success&&serial===requestSerial)error='لم تتوفر صيغ تنزيل لهذا الرابط الآن؛ قد يتطلب المقطع تسجيل دخول أو تحققًا من يوتيوب.';
         return;
       }
       options=(Array.isArray(json.streams)?json.streams:[]).filter(s=>s&&
@@ -183,7 +179,7 @@
       if(!options.length)error='لم يُرجع مزوّد التنزيل أي ملف قابل للحفظ.';
       if(json.title)$('formatIntro').textContent=json.title;
     }catch(e){
-      if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=await browserFallback(id,serial);if(!success&&serial===requestSerial)error='تعذر الاتصال بمصادر التنزيل المتاحة. جرّب زر Cobalt المجاني أدناه.';}
+      if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=await browserFallback(id,serial);if(!success&&serial===requestSerial)error='تعذر الاتصال بخدمة تنزيل يوتيوب لهذا الرابط. حاول مجددًا لاحقًا.';}
     }finally{
       if(serial===requestSerial){loading=false;render();}
     }
@@ -235,14 +231,6 @@
     a.href=current.url;a.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-media');
     a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
     say('أرسلنا رابط الملف المباشر إلى تنزيلات المتصفح.');
-  };
-  $('formatExternal').onclick=()=>{
-    if(current?.kind!=='youtube')return;
-    // Cobalt explicitly documents prefilled links in its URL hash.
-    const original='https://www.youtube.com/watch?v='+current.id;
-    const cobalt='https://cobalt.tools/#'+encodeURIComponent(original);
-    const w=window.open(cobalt,'_blank','noopener,noreferrer');
-    if(!w)window.location.href=cobalt;
   };
   $('formatPreview').onclick=()=>{
     if(!current)return;
