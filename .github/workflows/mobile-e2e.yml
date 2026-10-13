@@ -1,0 +1,30 @@
+name: RAJA mobile end-to-end
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'format-picker.js'
+      - 'app-shell.js'
+      - 'library.js'
+      - 'sw.js'
+      - 'tests/**'
+      - '.github/workflows/mobile-e2e.yml'
+  workflow_dispatch:
+jobs:
+  mobile-playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install headless Chromium and Playwright
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify live RAJA mobile UI with mocked media endpoints
+        env:
+          RAJA_URL: https://raja.athat.app/
+        run: node tests/mobile-smoke.cjs
