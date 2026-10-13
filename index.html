@@ -122,6 +122,12 @@ input{background:#2c2c2c;border-color:#606060}
 .raja-auth-required body{overflow:hidden}
 .raja-auth-required .raja-bottom-nav{display:none}
 @media(max-width:480px){.raja-top-note{display:none}.raja-account-id{max-width:145px}}
+
+.ss-fallback{margin:16px 0;padding:15px;background:#37322d;border:1px solid #806647;border-radius:14px}
+.ss-fallback p{margin:0 0 11px;color:#efe0ca;font-size:14px}
+.ss-fallback small{display:block;margin-top:10px;line-height:1.8;color:#c9c2b7}
+.ss-fallback-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:#a67b40;border-radius:12px;padding:12px 18px;color:#fff;text-decoration:none;font-weight:750}
+.ss-fallback-link:hover{background:#bc8f50}
 </style></head><body><main>
 <header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small><div class="raja-account" id="rajaAccount" hidden><div class="raja-account-id"><strong id="rajaAccountName"></strong><small id="rajaAccountEmail"></small></div><button id="rajaLogout" class="raja-signout" type="button">خروج</button></div></header>
 <section class="raja-panel" data-tab-panel="search">
@@ -145,6 +151,11 @@ input{background:#2c2c2c;border-color:#606060}
 <button id="formatKeep" type="button" class="lib-btn">حفظ في مكتبتي</button>
 </div>
 <p id="formatNotice" role="status" aria-live="polite"></p>
+<div id="ssFallback" class="ss-fallback" hidden>
+  <p id="ssDescription">إذا لم يعمل التحميل من رَجْع، يمكنك تجربة طريقة إضافة ss إلى رابط يوتيوب.</p>
+  <a id="ssFallbackLink" class="ss-fallback-link" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" href="https://www.ssyoutube.com/">فتح الرابط بصيغة SS <span aria-hidden="true">↗</span></a>
+  <small>هذه خدمة خارجية مستقلة عن رَجْع ويوتيوب. ستختار الصيغ المتوفرة في موقعها، وليس داخل رَجْع. قد لا تعمل بعض المقاطع أو المناطق؛ انتبه للإعلانات ولا تُدخل بيانات Google أو كلمات المرور فيها.</small>
+</div>
 <div id="localDownloadProgressWrap" class="local-download-progress" hidden aria-live="polite">
   <div class="local-progress-head"><strong>حفظ الملف في «ملفاتي»</strong><span id="localDownloadProgressLabel">جارٍ التحضير...</span></div>
   <progress id="localDownloadProgress" max="100" aria-label="تقدم حفظ الملف"></progress>
