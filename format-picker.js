@@ -64,7 +64,26 @@
     const b=$('formatDownload');
     const selected=current?.kind==='youtube'?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
     const ready=!!selected && !loading;
-    b.disabled=!ready;
+    b.setAttribute('aria-disabled',String(!ready));
+    b.tabIndex=ready?0:-1;
+    // Real same-origin attachment link, rather than synthetic hidden-anchor clicks.
+    // Allows iOS Safari, desktop browsers and browser download tools to handle saving natively.
+    if(!ready){
+      b.removeAttribute('href');
+      b.removeAttribute('download');
+    }else if(current?.kind==='youtube'){
+      const q=new URLSearchParams({id:current.id,kind:selected.kind,format:selected.format,quality:selected.quality||''});
+      if(selected.localDirect){
+        b.href='#';
+        b.removeAttribute('download');
+      }else{
+        b.href='/api/download?'+q.toString();
+        b.download='raja-'+current.id+'.'+selected.format;
+      }
+    }else if(current?.kind==='direct'){
+      b.href=current.url;
+      b.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-media');
+    }
     const keep=$('formatKeep');
     const canSaveVideo=current?.kind==='youtube'&&ready&&selected.backend&&['mp4','mp3'].includes(selected.format);
     keep.disabled=!!(current?.kind==='youtube'&&loading);
@@ -218,23 +237,23 @@
     }else{chosen=0;render();}
     return true;
   }
-  $('formatDownload').onclick=()=>{
-    if(!current||loading)return;
-    if(current.kind==='youtube'){
-      const s=options[chosen];
-      if(!s)return;
-      if(s.localDirect){saveBrowserStream(s);return;}
-      const q=new URLSearchParams({id:current.id,kind:s.kind,format:s.format,quality:s.quality||''});
-      const url='/api/download?'+q.toString();
-      const a=document.createElement('a');a.href=url;a.download='raja-'+current.id+'.'+s.format;
-      document.body.appendChild(a);a.click();a.remove();
-      say('تم إرسال طلب تنزيل '+label(s)+' إلى المتصفح. إذا تعذر وصول المزوّد للفيديو فلن يكتمل التنزيل.');
-      return;
+  $('formatDownload').onclick=event=>{
+    const b=$('formatDownload');
+    if(b.getAttribute('aria-disabled')==='true'||!current||loading){
+      event.preventDefault(); return;
     }
-    const a=document.createElement('a');
-    a.href=current.url;a.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-media');
-    a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
-    say('أرسلنا رابط الملف المباشر إلى تنزيلات المتصفح.');
+    if(current.kind==='youtube'){
+      const selected=options[chosen];
+      if(!selected){event.preventDefault();return}
+      if(selected.localDirect){
+        event.preventDefault();
+        saveBrowserStream(selected);
+      }else{
+        say('أرسل رَجْع طلب الملف إلى تنزيلات المتصفح. ستظهر النتيجة في تنزيلات الجهاز؛ وقد يفشل المصدر في بعض المقاطع.');
+      }
+    }else{
+      say('أرسل رَجْع رابط الملف المباشر إلى تنزيلات المتصفح.');
+    }
   };
   $('formatPreview').onclick=()=>{
     if(!current)return;
