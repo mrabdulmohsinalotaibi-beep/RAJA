@@ -28,7 +28,7 @@ const context={console,Date:Clock,crypto:require('node:crypto').webcrypto,URL:{c
  setInterval:()=>1,clearInterval(){},setTimeout,clearTimeout,Event:class{},
  confirm:()=>true,prompt:()=>null,queueMicrotask,location:{origin:'https://test.example'},
  dispatchEvent(){},addEventListener:(n,f)=>handlers[n]=f,rajaAuthReady:Promise.resolve({configured:false,user:null}),
- rajaLibrary:{items:async()=>[],getBlob:async()=>({type:''})},
+ rajaLibrary:{items:async()=>[{id:'f1',name:'first.wav'},{id:'f2',name:'second.wav'}],getBlob:async()=>({type:''})},
 };
 context.window=context;
 vm.createContext(context);
@@ -47,9 +47,10 @@ const stored=()=>JSON.parse(storage.get(key))[0];
  for(let i=0;i<3;i++){audio.pause();await flush();assert.equal(audio.src,source);assert.equal(context.navigator.mediaSession.playbackState,'none');await audio.play();await new Promise(r=>setTimeout(r,5));assert.equal(audio.paused,false);assert.equal(audio.currentTime,8);assert.deepEqual(audioTypes.slice(-2),['ambient','playback'])}
  // Merely returning to a paused player must not restart it or alter the audio category.
  audio.pause();const beforeForeground=audioTypes.length;context.document.hidden=false;docHandlers.visibilitychange();assert.equal(audio.paused,true);assert.equal(audioTypes.length,beforeForeground);context.document.hidden=true;
- // Metadata canonicalization/renaming by cloud sync must not release a paused native session.
- audio.pause();const cloud=context.rajaLessons.snapshot();cloud[0].name='Renamed in cloud';cloud[0].items=cloud[0].items.map(i=>({title:i.title,libraryId:i.libraryId,type:i.type,id:i.id}));context.rajaLessons.applyCloud(cloud);
- assert.equal(audio.src,source);assert.equal(audio.currentTime,8);await audio.play();assert.equal(audio.paused,false);
+ // Local stop/start retains the latest position, including a deliberate seek backwards.
+ audio.currentTime=4;audio.ontimeupdate();context.rajaLessons.stop();
+ assert.equal(context.rajaLessons.state().position,4);assert.equal(context.rajaLessons.state().resumable,true);
+ await context.rajaLessons.toggle();await flush();assert.equal(audio.currentTime,4);assert.equal(audio.paused,false);
 
  audio.currentTime=40;audio.ontimeupdate();await flush();
  assert.match(get('lessonNowTitle').textContent,/second/);
