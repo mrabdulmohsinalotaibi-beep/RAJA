@@ -1,4 +1,4 @@
-import {contactMethods} from './auth-config.js';
+import {contactMethods,passwordConfigured} from './auth-config.js';
 // Google OpenID Connect utilities for RAJA Cloudflare Pages Functions.
 // Only Google email/profile/openid scopes; never request YouTube account access.
 const encoder = new TextEncoder();
@@ -11,7 +11,7 @@ export const googleConfigured = env => Boolean(
   env?.GOOGLE_CLIENT_ID && env?.GOOGLE_CLIENT_SECRET && env?.RAJA_SESSION_SECRET &&
   String(env.RAJA_SESSION_SECRET).length >= 32
 );
-export const configured = env => googleConfigured(env)||Object.values(contactMethods(env)).some(Boolean);
+export const configured = env => passwordConfigured(env)||googleConfigured(env)||Object.values(contactMethods(env)).some(Boolean);
 export const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status, headers: {
     'Content-Type': 'application/json; charset=utf-8',
@@ -64,11 +64,15 @@ export async function currentUser(request, env) {
   if (!configured(env)) return null;
   const value = await unseal(getCookie(request, SESSION_COOKIE), env.RAJA_SESSION_SECRET);
   const now = Math.floor(Date.now() / 1000);
-  if (!value || !['raja-google','raja-contact'].includes(value.iss) || !value.sub ||
+  if (!value || !['raja-google','raja-contact','raja-password'].includes(value.iss) || !value.sub ||
       (value.iss==='raja-google'&&!value.email) || (value.iss==='raja-contact'&&!value.email&&!value.phone) ||
       !Number.isInteger(value.iat) || !Number.isInteger(value.exp) ||
       value.iat > now + 30 || value.exp < now || value.exp > now + 8 * 86400) return null;
-  return { id: String(value.sub), email: String(value.email||''), phone: String(value.phone||''), name: String(value.name || '') };
+  if(value.iss==='raja-password'){
+    if(!env.RAJA_DB||!value.sid||!value.email)return null;
+    try{const session=await env.RAJA_DB.prepare('SELECT s.user_id FROM raja_password_sessions s JOIN raja_accounts a ON a.id=s.user_id WHERE s.session_id=? AND s.user_id=? AND s.expires_at>? AND s.credential_version=a.credential_version').bind(value.sid,value.sub,now).first();if(!session)return null}catch{return null}
+  }
+  return { id: String(value.sub), email: String(value.email||''), phone: String(value.phone||''), name: String(value.name || ''), emailVerified:value.iss!=='raja-password' };
 }
 export async function requireUser(request, env) {
   if (!configured(env)) return null; // Preserve the existing public site until OAuth credentials are set.

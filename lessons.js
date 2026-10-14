@@ -303,8 +303,8 @@ window.addEventListener('storage',e=>{
 });
 (async()=>{
  const auth=await window.rajaAuthReady;
- if(auth?.configured&&!auth.user?.id)return;
- scope='raja-lessons-v1-'+(auth?.configured?auth.user.id:'local');
+ if(auth?.configured&&!auth.user?.id&&!auth.guestAllowed)return;
+ scope='raja-lessons-v1-'+(auth?.user?.id?auth.user.id:'local');
  try{selectedId=localStorage.getItem(scope+':selected')||''}catch{}
  try{const stored=JSON.parse(localStorage.getItem(scope)||'[]');if(Array.isArray(stored))lists=stored}catch{tell('تعذر قراءة القوائم السابقة.',true)}
  await reloadLibrary();

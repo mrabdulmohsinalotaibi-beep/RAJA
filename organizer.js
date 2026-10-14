@@ -71,8 +71,8 @@ function clearConflict(){
 }
 function authScope(){
  const state=window.rajaAuthState?.();
- if(state?.configured&&!state.user?.id)return null;
- return state?.configured?'raja-organizer-'+state.user.id:'raja-organizer-local';
+ if(state?.configured&&!state.user?.id&&!state.guestAllowed)return null;
+ return state?.user?.id?'raja-organizer-'+state.user.id:'raja-organizer-local';
 }
 async function bootstrap(){
  await (window.rajaAuthReady||Promise.resolve());
@@ -81,8 +81,8 @@ async function bootstrap(){
  $('organizerSection').hidden=false;
  scope=value;data=readLocal();render();
  const auth=window.rajaAuthState?.();
- if(!auth?.configured){
-  notice('المفضلة والقوائم محفوظة على جهازك حتى يتم تفعيل تسجيل Google.');
+ if(!auth?.configured||!auth?.user?.id){
+  notice('المفضلة والقوائم محفوظة على جهازك. سجل الدخول لمزامنة مفضلة YouTube مع حسابك.');
   return;
  }
  // Never merge anonymous favorites into someone else's account without explicit consent.

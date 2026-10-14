@@ -5,3 +5,5 @@ export function contactMethods(env){
  const ready=contactConfigured(env);
  return {email:ready&&env.RAJA_EMAIL_LOGIN==='true',sms:ready&&env.RAJA_SMS_LOGIN==='true'};
 }
+
+export const passwordConfigured=env=>Boolean(env?.RAJA_DB&&String(env?.RAJA_SESSION_SECRET||'').length>=32&&env?.RAJA_PASSWORD_LOGIN==='true');
