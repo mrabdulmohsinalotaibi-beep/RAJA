@@ -37,7 +37,7 @@ async function waitFor(fn){for(let n=0;n<300;n++){if(await fn())return;await sle
   await waitFor(()=>{const row=db.prepare("SELECT data FROM raja_sync WHERE subject='owner-a-12345'").get();return row&&JSON.parse(row.data).lessons[0]?.items.length===1});
   const id=db.prepare("SELECT id FROM raja_cloud_files WHERE subject='owner-a-12345'").get().id;
   const second=await device(cookieA);await second.p.goto(base);await second.p.locator('#recorderMenu').click();
-  await second.p.getByText('قائمة بين الأجهزة',{exact:true}).waitFor();await second.p.getByRole('button',{name:'تشغيل حصة اليوم',exact:true}).click();
+  await second.p.getByRole('heading',{name:'قائمة بين الأجهزة',exact:true}).waitFor();await second.p.getByRole('button',{name:'تشغيل حصة اليوم',exact:true}).click();
   await second.p.waitForFunction(()=>document.querySelector('#lessonAudio').currentTime>0);
   assert.ok(ranges.length>0,'cloud playback must support actual media range requests');
   const other=await device(cookieB);await other.p.goto(base);await other.p.locator('#recorderMenu').click();
@@ -53,11 +53,20 @@ async function waitFor(fn){for(let n=0;n<300;n++){if(await fn())return;await sle
   await second.c.setOffline(false);await second.p.evaluate(()=>window.rajaCloudSync.sync());
   await waitFor(()=>{const row=db.prepare("SELECT data FROM raja_sync WHERE subject='owner-a-12345'").get();return JSON.parse(row.data).lessons.some(l=>l.name==='تعديل دون إنترنت')});
   await first.p.evaluate(()=>window.rajaCloudSync.sync());
-  await first.p.getByText('تعديل دون إنترنت',{exact:true}).waitFor();
+  await first.p.getByRole('heading',{name:'تعديل دون إنترنت',exact:true}).waitFor();
   // Deletion propagates without a stale device resurrecting the file.
   await first.p.getByRole('button',{name:'ملفاتي',exact:true}).click();await first.p.locator('#localItems .lib-item').getByRole('button',{name:'حذف',exact:true}).click();
   await waitFor(()=>db.prepare('SELECT status FROM raja_cloud_files WHERE id=?').get(id).status==='deleted');
   await second.p.evaluate(()=>window.rajaCloudSync.sync());await waitFor(async()=>!(await second.p.evaluate(()=>window.rajaLibrary.items())).some(x=>x.id===id));
+  // Existing anonymous data is imported only through the explicit account action.
+  const guestContext=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'}),guest=await guestContext.newPage();guest.on('dialog',d=>d.accept());guest.on('pageerror',e=>errors.push(e.message));
+  await guest.goto(base);await guest.locator('#recorderMenu').click();await guest.locator('#lessonName').fill('مكتبة الضيف السابقة');await guest.locator('#lessonCreate button').click();await guest.locator('.lesson-list summary').click();
+  await guest.locator('.lesson-list input[type=file]').setInputFiles({name:'ملف الضيف.mp3',mimeType:'audio/mpeg',buffer:tone});await guest.locator('.lesson-row').waitFor();
+  await guestContext.addCookies([{name:'raja_session',value:cookieA.split('=').slice(1).join('='),url:base}]);await guest.reload();await guest.locator('#recorderMenu').click();await guest.getByRole('button',{name:'ملفاتي',exact:true}).click();
+  assert.equal(await guest.locator('#localItems').getByText('ملف الضيف.mp3',{exact:true}).count(),0);
+  await guest.locator('#importGuestLibrary').click();
+  await waitFor(()=>db.prepare("SELECT count(*) n FROM raja_cloud_files WHERE subject='owner-a-12345' AND name='ملف الضيف.mp3' AND status='ready'").get().n===1);
+  const guestStillExists=await guest.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('raja-local-library');r.onsuccess=()=>{const q=r.result.transaction('items').objectStore('items').count();q.onsuccess=()=>{r.result.close();resolve(q.result)};q.onerror=()=>reject(q.error)}}));assert.equal(guestStillExists,1);
   assert.deepEqual(errors,[]);
   console.log('PASS two independent devices: automatic file/list upload, private cloud playback with ranges, exact offline cache, offline edits/reconnect, propagation and account isolation');
  }finally{await browser?.close();await new Promise(r=>server.close(r));db.close()}
