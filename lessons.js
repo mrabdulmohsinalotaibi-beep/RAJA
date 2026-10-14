@@ -249,7 +249,7 @@ window.rajaLessons={
  applyCloud(next){
   if(active){const incoming=next.find(l=>l.id===active.list.id),shape=l=>JSON.stringify([l.name,l.minutes,l.start,l.items]);
    if(!incoming||shape(incoming)!==shape(active.list))stop();
-   else{Object.assign(active.list,incoming);active.day=active.list.day;next=next.map(l=>l.id===active.list.id?active.list:l)}
+   else{Object.assign(active.list,incoming);active.day=core.ensureDay(active.list);next=next.map(l=>l.id===active.list.id?active.list:l)}
   }
   lists=next;save(false);render();
  },
