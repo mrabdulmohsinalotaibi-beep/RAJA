@@ -9,6 +9,7 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
   browser=await chromium.launch({headless:true,args:['--autoplay-policy=no-user-gesture-required']});
   const page=await browser.newPage({viewport:{width:390,height:844},serviceWorkers:'block'}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',dialog=>dialog.accept());
+  await page.addInitScript(()=>{window.testAudioTypes=[];Object.defineProperty(navigator,'audioSession',{configurable:true,value:{set type(value){this.value=value;window.testAudioTypes.push(value)},get type(){return this.value}}})});
   await page.route('**/api/auth/me',r=>r.fulfill({json:{configured:true,guestAllowed:true,user:null,methods:{password:true}}}));
   await page.goto('http://127.0.0.1:8768');
   await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'ملفاتي',exact:true}).click();
@@ -24,10 +25,10 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
   assert.equal(await page.locator('#lessonVideo').evaluate(e=>e.hidden),true);
   const nativeResume=await page.evaluate(async()=>{
    const audio=document.querySelector('#lessonAudio'),source=audio.currentSrc,checks=[];
-   for(let i=0;i<3;i++){audio.pause();const at=audio.currentTime;await new Promise(r=>setTimeout(r,100));await audio.play();checks.push({source:audio.currentSrc===source,position:Math.abs(audio.currentTime-at)<0.15,playing:!audio.paused})}
+   for(let i=0;i<3;i++){audio.pause();const at=audio.currentTime;await new Promise(r=>setTimeout(r,100));await audio.play();await new Promise(r=>setTimeout(r,20));checks.push({categories:window.testAudioTypes.slice(-2).join(','),source:audio.currentSrc===source,position:Math.abs(audio.currentTime-at)<0.15,playing:!audio.paused})}
    return checks;
   });
-  for(const check of nativeResume)assert.deepEqual(check,{source:true,position:true,playing:true});
+  for(const check of nativeResume)assert.deepEqual(check,{categories:'ambient,playback',source:true,position:true,playing:true});
 
   await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'القوائم',exact:true}).click();
   await page.locator('#lessonName').fill('قائمة MP3');await page.locator('#lessonCreate button').click();

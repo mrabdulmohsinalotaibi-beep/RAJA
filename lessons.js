@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id),core=window.RajaLessons;
 const audio=$('lessonAudio'),video=$('lessonVideo');
 let selectedId='',lists=[],scope='',library=[],active=null,media=null,objectURL='',yt=null,ytReady=null;
-let generation=0,transition=false,timer=null,lastSave=0;
+let generation=0,transition=false,timer=null,lastSave=0,audioRearmTimer=null;
 const uid=()=>crypto.randomUUID();
 const fmt=n=>{n=Math.max(0,Math.floor(n||0));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
 const tell=(text,bad=false)=>{const el=$('lessonStatus');el.textContent=text;el.style.color=bad?'#9c363d':'#31634d'};
@@ -106,7 +106,23 @@ function render(){
   });root.append(box);
  }
 }
+function activateAudioSession(rearm=false){
+ const session=navigator.audioSession;if(!session)return;
+ clearTimeout(audioRearmTimer);audioRearmTimer=null;
+ try{
+  if(!rearm){session.type='playback';return}
+  // WebKit can retain a stale playback category after a GPU/audio-process restart.
+  // Reasserting the same value is deduplicated; a distinct category + new task
+  // forces the platform session to be configured again without reloading media.
+  session.type='ambient';
+  audioRearmTimer=setTimeout(()=>{
+   audioRearmTimer=null;
+   if(media&&!media.paused&&active){try{session.type='playback'}catch{}}
+  },0);
+ }catch{try{session.type='playback'}catch{}}
+}
 function clearSource(){
+ clearTimeout(audioRearmTimer);audioRearmTimer=null;
  clearInterval(timer);timer=null;
  if(media){media.onplay=media.onpause=media.onended=media.ontimeupdate=media.onloadedmetadata=media.onerror=null;media.pause();media.removeAttribute('src');media.load();media=null}
  if(yt){try{yt.destroy()}catch{}yt=null}
@@ -124,7 +140,7 @@ async function resume(){
  if(!active)return;
  if(core.dayKey(Date.now(),active.list.start)!==active.day.key){stop();tell('بدأ يوم استماع جديد. اضغط تشغيل حصة اليوم.');return}
  if(active.done)return start(active.list);
- try{if(media){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}await media.play()}else yt?.playVideo()}catch{tell('اضغط تشغيل داخل المشغل للمتابعة.',true)}
+ try{if(media){activateAudioSession();await media.play()}else yt?.playVideo()}catch{tell('اضغط تشغيل داخل المشغل للمتابعة.',true)}
 }
 function installSession(item){
  if(!navigator.mediaSession)return;
@@ -226,11 +242,11 @@ async function openItem(item,offset){
   player.onerror=()=>{if(token===generation)fail(Error('صيغة الملف أو رابط الدرس غير قابل للتشغيل.'))};
   player.onplay=()=>{
    $('lessonPause').textContent='إيقاف مؤقت';
-   if(active?.done)void start(active.list);
+   if(active?.done)void start(active.list);else activateAudioSession(true);
   };
   player.onpause=()=>{$('lessonPause').textContent='متابعة';tick();save()};
   player.src=src;player.load();timer=setInterval(()=>tick(),200);
-  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}
+  activateAudioSession();
   installSession(item);
  }
 }
@@ -306,8 +322,10 @@ $('player').addEventListener('play',()=>{if(active)stop()});
 window.addEventListener('raja-library-change',()=>void reloadLibrary());
 window.addEventListener('raja-cloud-library-applied',()=>void reloadLibrary());
 window.addEventListener('pagehide',()=>{tick();save()});
+window.addEventListener('pageshow',()=>{if(media&&!media.paused)activateAudioSession(true)});
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden&&active?.item.type==='youtube')pause();
+ if(!document.hidden&&media&&!media.paused)activateAudioSession(true);
  // Do not pause native media on lock or while switching applications.
  tick();save();
 });
