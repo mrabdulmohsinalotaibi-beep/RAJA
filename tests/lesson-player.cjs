@@ -27,7 +27,7 @@ const context={console,Date:Clock,crypto:require('node:crypto').webcrypto,URL:{c
  setInterval:()=>1,clearInterval(){},setTimeout,clearTimeout,Event:class{},
  confirm:()=>true,prompt:()=>null,queueMicrotask,location:{origin:'https://test.example'},
  addEventListener:(n,f)=>handlers[n]=f,rajaAuthReady:Promise.resolve({configured:false,user:null}),
- rajaLibrary:{items:async()=>[],getBlob:async()=>({type:'audio/wav'})},
+ rajaLibrary:{items:async()=>[],getBlob:async()=>({type:''})},
 };
 context.window=context;
 vm.createContext(context);

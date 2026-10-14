@@ -4,6 +4,15 @@ const $ = id => document.getElementById(id);
 const say = (s, bad=false) => { $('localStatus').textContent=s; $('localStatus').style.color=bad?'#9c363d':'#31634d'; };
 const fmt = n => n > 1048576 ? (n/1048576).toFixed(1)+' MB' : (n/1024).toFixed(0)+' KB';
 const MAX = 400*1048576;
+const MEDIA_ACCEPT='audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.mp4,.m4v,.mov,.webm';
+const MIME_BY_EXT={mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',wav:'audio/wav',ogg:'audio/ogg',opus:'audio/ogg',flac:'audio/flac',mp4:'video/mp4',m4v:'video/mp4',mov:'video/quicktime',webm:'video/webm'};
+function mediaMime(file){
+ const ext=String(file.name||'').trim().split('.').pop().toLowerCase();
+ return MIME_BY_EXT[ext]||(/^(audio|video)\//.test(file.type||'')?file.type:'');
+}
+function importError(error){
+ return error?.name==='QuotaExceededError'?'لا توجد مساحة تخزين كافية للموقع على جهازك.':error?.name==='NotReadableError'?'تعذر قراءة الملف. نزّله أولًا في تطبيق الملفات ثم اختره مجددًا.':error?.message||'تعذر حفظ الملف على هذا الجهاز.';
+}
 let dbOpen, previewURL = '';
 async function db(){
   if(!dbOpen) dbOpen=(async()=>{
@@ -51,23 +60,25 @@ const uid=()=>crypto.randomUUID?.()||Date.now()+'-'+Math.random();
 async function saveFile(file){
   if(!file?.size) throw Error('الملف فارغ');
   if(file.size>MAX) throw Error('حجم الملف يتجاوز 400 ميجابايت؛ احفظه في ملفات جهازك مباشرة.');
-  const item={id:uid(),type:'file',name:file.name||'media',size:file.size,at:Date.now()};
-  await write(item,file);
+  const mime=mediaMime(file);
+  const item={id:uid(),type:'file',name:file.name||'media',mime,size:file.size,at:Date.now()};
+  // Store a media Blob rather than the file-provider's File wrapper (notably on iOS).
+  const blob=new Blob([file],{type:mime||file.type});
+  await write(item,blob);
   return item;
 }
-async function importFiles(files){
-  if(!files.length)return;
-  let count=0;
-  try{
-    for(const f of files){
-      if(!(/^(audio|video)\//.test(f.type)||/\.(mp4|webm|mov|m4v|mp3|m4a|wav|ogg|flac|aac)$/i.test(f.name)))continue;
-      say('جاري حفظ '+f.name+' على هذا الجهاز...');
-      await saveFile(f);count++;
-    }
-    say(count?'تم حفظ '+count+' من الملفات داخل مكتبتك المحلية دون رفعها إلى أي خادم.':'لم يتم اختيار ملفات صوت أو فيديو صالحة.');
-  }catch(e){say(e.name==='QuotaExceededError'?'لا توجد مساحة تخزين كافية للموقع على جهازك.':(e.message||'تعذر الحفظ'),true);}
+async function importFiles(files,{onProgress}={}){
+  const items=[],errors=[];
+  for(const file of files){
+    if(!mediaMime(file)){errors.push(file.name+': صيغة الملف غير مدعومة.');continue}
+    const message='جارٍ حفظ '+file.name+' على هذا الجهاز...';say(message);onProgress?.(message);
+    try{items.push(await saveFile(file))}catch(error){errors.push(file.name+': '+importError(error))}
+  }
+  const message=(items.length?'تم حفظ '+items.length+' من الملفات داخل مكتبتك المحلية. ':'')+errors.join(' ');
+  say(message||'لم يتم اختيار ملفات.',!!errors.length);
   await refresh();
-  window.dispatchEvent(new Event('raja-library-change'));
+  if(items.length)window.dispatchEvent(new Event('raja-library-change'));
+  return {items,errors};
 }
 function button(label,callback,danger=false){
   const b=document.createElement('button');b.type='button';b.className='lib-btn'+(danger?' danger':'');b.textContent=label;
@@ -154,8 +165,20 @@ async function saveCurrent(){
     say(e.name==='QuotaExceededError'?'المساحة المتاحة لا تكفي لهذا الملف.':e.name==='AbortError'?'انتهت مهلة التنزيل.':e instanceof TypeError?'الخادم الخارجي لا يسمح للتطبيق بتنزيل هذا الرابط (CORS أو اتصال).':(e.message||'تعذر الحفظ'),true);
   }finally{busy=false;$('addToLibrary').disabled=false;}
 }
-$('localImport').addEventListener('change',async e=>{await importFiles([...e.target.files]);e.target.value='';});
-$('file').addEventListener('change',e=>importFiles([...e.target.files]));
+for(const id of ['localImport','file']){
+  $(id).accept=MEDIA_ACCEPT;
+  $(id).addEventListener('change',async e=>{
+    const picker=e.target;picker.disabled=true;
+    try{
+      const result=await importFiles([...picker.files]);
+      if(id==='file'){
+        $('notice').textContent=result.errors.join(' ')||'تم حفظ الملف في «ملفاتي».';
+        if(result.items[0])await showItem(result.items[0]);
+      }
+    }catch(error){say(importError(error),true);if(id==='file')$('notice').textContent=importError(error)}
+    finally{picker.disabled=false;if(id==='localImport')picker.value=''}
+  });
+}
 $('addToLibrary').addEventListener('click',saveCurrent);
 $('localSearch').addEventListener('input',()=>refresh().catch(e=>say(e.message,true)));
 $('persistStorage').addEventListener('click',async()=>{
@@ -188,7 +211,7 @@ function setProgress(stage, bytes=0, total=0){
   }
 }
 
-window.rajaLibrary={items:()=>read('items'),getBlob:async id=>(await read('blobs',id))?.blob,importFiles};
+window.rajaLibrary={items:()=>read('items'),getBlob:async id=>(await read('blobs',id))?.blob,importFiles,mediaAccept:MEDIA_ACCEPT};
 window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality}) {
   if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)||!['mp4','mp3'].includes(format)||!['audio','video'].includes(kind)||!/^\d{2,4}$/.test(String(quality))) {
     say('خيارات الحفظ غير صالحة.',true);

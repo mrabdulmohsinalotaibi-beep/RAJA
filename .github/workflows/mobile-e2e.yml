@@ -40,7 +40,7 @@ jobs:
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Verify daily lessons and mobile playback locally
-        run: node tests/cache-version.cjs && node tests/lesson-core.cjs && node tests/lesson-player.cjs && node tests/recorder-shell.cjs && node tests/contact-auth.cjs && node tests/password-auth.cjs && node tests/password-ui-e2e.cjs && node tests/lessons-e2e.cjs
+        run: node tests/cache-version.cjs && node tests/lesson-core.cjs && node tests/lesson-player.cjs && node tests/recorder-shell.cjs && node tests/contact-auth.cjs && node tests/password-auth.cjs && node tests/password-ui-e2e.cjs && node tests/local-mp3-e2e.cjs && node tests/lessons-e2e.cjs
       - name: Verify live RAJA mobile UI with mocked media endpoints
         env:
           RAJA_URL: https://raja.athat.app/

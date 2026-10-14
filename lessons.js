@@ -63,17 +63,18 @@ function render(){
   };box.append(settings);
   const add=document.createElement('details');const summary=document.createElement('summary');summary.textContent='إضافة دروس إلى القائمة';add.append(summary);
   const fileLabel=document.createElement('label');fileLabel.textContent='ملفات من الجهاز (تُضاف بترتيب الأسماء)';
-  const files=document.createElement('input');files.type='file';files.accept='audio/*,video/*';files.multiple=true;fileLabel.append(files);
+  const files=document.createElement('input');files.type='file';files.accept=window.rajaLibrary.mediaAccept||'audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.flac';files.multiple=true;fileLabel.append(files);
   files.onchange=async()=>{
    try{
     const selected=[...files.files].sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true}));
     if(list.items.length+selected.length>500)throw Error('الحد الأقصى 500 درس للقائمة.');
     if((list.day?.furthest||active?.list===list)&&!confirm('إضافة دروس تعيد خطة القائمة من البداية. متابعة؟'))return;
-    const before=new Set((await window.rajaLibrary.items()).map(x=>x.id));
-    await window.rajaLibrary.importFiles(selected);
-    const imported=(await window.rajaLibrary.items()).filter(x=>!before.has(x.id)).sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true}));
-    if(imported.length){resetPlan(list);for(const item of imported)list.items.push({id:uid(),type:'file',libraryId:item.id,title:item.name});save();render()}
-   }catch(e){tell(e.message,true)}finally{files.value=''}
+    files.disabled=true;
+    const result=await window.rajaLibrary.importFiles(selected,{onProgress:message=>tell(message)});
+    const imported=result.items.sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true}));
+    if(imported.length){resetPlan(list);for(const item of imported)list.items.push({id:uid(),type:'file',libraryId:item.id,mime:item.mime,title:item.name});save();render()}
+    tell((imported.length?'تمت إضافة '+imported.length+' دروس إلى القائمة. ':'')+result.errors.join(' '),!!result.errors.length);
+   }catch(e){tell(e.message,true)}finally{files.value='';files.disabled=false}
   };add.append(fileLabel);
   const picker=document.createElement('select');picker.setAttribute('aria-label','درس من ملفاتي');
   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='اختر من ملفاتي';picker.append(placeholder);
@@ -81,7 +82,7 @@ function render(){
   add.append(picker,button('إضافة من ملفاتي',()=>{
    const item=library.find(x=>x.id===picker.value);if(!item)return tell('اختر ملفًا أولًا.',true);
    if(list.items.length>=500)return tell('الحد الأقصى 500 درس.',true);
-   changeStructure(list,()=>list.items.push({id:uid(),type:item.type,libraryId:item.id,videoId:item.videoId,title:item.name}));
+   changeStructure(list,()=>list.items.push({id:uid(),type:item.type,libraryId:item.id,videoId:item.videoId,mime:item.mime,title:item.name}));
   }));
   const linkForm=document.createElement('form');linkForm.className='lesson-form';
   const title=input('اسم الدرس','text',''),url=input('رابط ملف مباشر أو YouTube','url','');
@@ -207,7 +208,7 @@ async function openItem(item,offset){
    objectURL=URL.createObjectURL(blob);src=objectURL;mime=blob.type;
   }
   if(token!==generation)return;
-  const isAudio=mime.startsWith('audio/')||/\.(mp3|m4a|aac|ogg|wav|flac)([?#]|$)/i.test(item.title+' '+(item.url||''));
+  const isAudio=(item.mime||mime).startsWith('audio/')||[item.title,item.url].some(value=>/\.(mp3|m4a|aac|ogg|opus|wav|flac)([?#]|$)/i.test(String(value||'').trim()));
   media=isAudio?audio:video;media.hidden=false;
   const player=media;
   player.onloadedmetadata=()=>{
@@ -272,7 +273,7 @@ window.rajaLessons={
  async playLibraryItem(item){
   const found=lists.find(l=>l.items.some(i=>i.libraryId===item.id));
   if(found)return start(found);
-  const list={id:'preview-'+item.id,name:'ملفاتي',minutes:720,start:'05:00',items:[{id:item.id,type:item.type,libraryId:item.id,videoId:item.videoId,title:item.name}]};
+  const list={id:'preview-'+item.id,name:'ملفاتي',minutes:720,start:'05:00',items:[{id:item.id,type:item.type,libraryId:item.id,videoId:item.videoId,mime:item.mime,title:item.name}]};
   return start(list);
  }
 };
