@@ -7,17 +7,17 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#eeebe5",
-  "theme_color": "#eeebe5",
+  "background_color": "#efebe3",
+  "theme_color": "#efebe3",
   "icons": [
     {
-      "src": "/icon.svg?v=20",
+      "src": "/icon.svg?v=21",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/assets/raja-logo.jpeg?v=20",
+      "src": "/assets/raja-logo.jpeg?v=21",
       "sizes": "1536x1536",
       "type": "image/jpeg",
       "purpose": "any"

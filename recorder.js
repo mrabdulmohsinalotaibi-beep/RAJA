@@ -28,7 +28,7 @@ function refresh(){
   const [h,m]=state.start.split(':').map(Number);$('recorderDayStart').textContent=num.format(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' مساءً':' صباحًا');
   $('recorderElapsed').textContent=format(state.elapsed);$('recorderDuration').textContent=format(state.minutes*60);
   $('recorderSeek').max=Number.isFinite(state.duration)&&state.duration>0?state.duration:1;
-  $('recorderSeek').value=state.position;$('recorderSeek').disabled=!state.active||state.done;
+  $('recorderSeek').value=state.position;$('recorderSeek').style.setProperty('--progress',Math.min(100,Math.max(0,state.position/Number($('recorderSeek').max)*100))+'%');$('recorderSeek').disabled=!state.active||state.done;
   $('recorderMedia').classList.toggle('has-picture',state.picture);
   document.querySelector('main').classList.toggle('recorder-playing',state.playing);
   if(wasPlaying!==state.playing){

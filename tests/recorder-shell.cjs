@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 class Node{
- constructor(){this.children=[];this.dataset={};this.hidden=false;this.value='';this.style={};this.attributes={};const c=new Set();this.classList={add:x=>c.add(x),remove:x=>c.delete(x),toggle:(x,on)=>on?c.add(x):c.delete(x),contains:x=>c.has(x)}}
+ constructor(){this.children=[];this.dataset={};this.hidden=false;this.value='';this.style={setProperty(){}};this.attributes={};const c=new Set();this.classList={add:x=>c.add(x),remove:x=>c.delete(x),toggle:(x,on)=>on?c.add(x):c.delete(x),contains:x=>c.has(x)}}
  append(...nodes){this.children.push(...nodes)}replaceChildren(...nodes){this.children=nodes}setAttribute(k,v){this.attributes[k]=v}
  addEventListener(k,f){this['on'+k]=f}querySelector(){return this.svg||=new Node()}showModal(){this.open=true}close(){this.open=false}
 }
