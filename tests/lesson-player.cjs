@@ -11,7 +11,8 @@ class Element {
  load(){if(this.src)queueMicrotask(()=>this.onloadedmetadata?.())}
  removeAttribute(name){delete this[name]}
 }
-const nodes=new Map(),handlers={},docHandlers={},storage=new Map(),sessionActions={};
+const nodes=new Map(),handlers={},docHandlers={},storage=new Map(),sessionActions={},audioTypes=[];
+const audioSession={set type(value){this.value=value;audioTypes.push(value)},get type(){return this.value}};
 const get=id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)};
 const key='raja-lessons-v1-local';
 storage.set(key,JSON.stringify([{id:'list',name:'Lessons',minutes:1,start:'05:00',items:[
@@ -23,7 +24,7 @@ class Clock extends Date{static now(){return clock}}
 const context={console,Date:Clock,crypto:require('node:crypto').webcrypto,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},
  document:{hidden:false,getElementById:get,createElement:tag=>new Element(tag),addEventListener:(n,f)=>docHandlers[n]=f},
  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>{writes++;storage.set(k,v)}},
- navigator:{mediaSession:{setActionHandler(action,handler){sessionActions[action]=handler},setPositionState(){}},audioSession:{}},
+ navigator:{mediaSession:{setActionHandler(action,handler){sessionActions[action]=handler},setPositionState(){}},audioSession},
  setInterval:()=>1,clearInterval(){},setTimeout,clearTimeout,Event:class{},
  confirm:()=>true,prompt:()=>null,queueMicrotask,location:{origin:'https://test.example'},
  dispatchEvent(){},addEventListener:(n,f)=>handlers[n]=f,rajaAuthReady:Promise.resolve({configured:false,user:null}),
@@ -43,7 +44,9 @@ const stored=()=>JSON.parse(storage.get(key))[0];
  context.document.hidden=true;docHandlers.visibilitychange();assert.equal(audio.paused,false);
  assert.equal(sessionActions.play,null);assert.equal(sessionActions.pause,null);assert.equal(sessionActions.stop,null);
  const source=audio.src;audio.currentTime=8;
- for(let i=0;i<3;i++){audio.pause();await flush();assert.equal(audio.src,source);assert.equal(context.navigator.mediaSession.playbackState,'none');await audio.play();assert.equal(audio.paused,false);assert.equal(audio.currentTime,8)}
+ for(let i=0;i<3;i++){audio.pause();await flush();assert.equal(audio.src,source);assert.equal(context.navigator.mediaSession.playbackState,'none');await audio.play();await new Promise(r=>setTimeout(r,5));assert.equal(audio.paused,false);assert.equal(audio.currentTime,8);assert.deepEqual(audioTypes.slice(-2),['ambient','playback'])}
+ // Merely returning to a paused player must not restart it or alter the audio category.
+ audio.pause();const beforeForeground=audioTypes.length;context.document.hidden=false;docHandlers.visibilitychange();assert.equal(audio.paused,true);assert.equal(audioTypes.length,beforeForeground);context.document.hidden=true;
  // Metadata canonicalization/renaming by cloud sync must not release a paused native session.
  audio.pause();const cloud=context.rajaLessons.snapshot();cloud[0].name='Renamed in cloud';cloud[0].items=cloud[0].items.map(i=>({title:i.title,libraryId:i.libraryId,type:i.type,id:i.id}));context.rajaLessons.applyCloud(cloud);
  assert.equal(audio.src,source);assert.equal(audio.currentTime,8);await audio.play();assert.equal(audio.paused,false);
@@ -60,5 +63,6 @@ const stored=()=>JSON.parse(storage.get(key))[0];
  const latest=stored();latest.name='Other tab';const incoming=JSON.stringify([latest]);storage.set(key,incoming);const before=writes;
  handlers.storage({key,newValue:incoming});assert.equal(writes,before);assert.equal(storage.get(key),incoming);
  assert.equal(audio.paused,true);
- console.log('PASS controller sequence, cutoff, hidden-page continuity, repeat, rollover, cross-tab preservation');
+ await new Promise(r=>setTimeout(r,5));assert.equal(audioSession.type,'auto');
+ console.log('PASS audio category recovery, paused-session preservation, controller sequence, cutoff, hidden-page continuity, repeat, rollover, cross-tab preservation');
 })().catch(e=>{console.error(e);process.exitCode=1});
