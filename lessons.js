@@ -116,19 +116,23 @@ function clearSource(){
 function stop(persist=true){
  generation++;active=null;clearSource();transition=false;$('lessonNow').hidden=true;
  if(navigator.mediaSession){navigator.mediaSession.playbackState='none';navigator.mediaSession.metadata=null}
+ try{if(navigator.audioSession)navigator.audioSession.type='auto'}catch{}
  if(persist)save();
 }
-function pause(){if(media)media.pause();else yt?.pauseVideo()}
+function pause(){if(media){if(!media.paused)media.pause()}else yt?.pauseVideo()}
 async function resume(){
  if(!active)return;
  if(core.dayKey(Date.now(),active.list.start)!==active.day.key){stop();tell('بدأ يوم استماع جديد. اضغط تشغيل حصة اليوم.');return}
  if(active.done)return start(active.list);
- try{if(media)await media.play();else yt?.playVideo()}catch{tell('اضغط تشغيل داخل المشغل للمتابعة.',true)}
+ try{if(media){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}await media.play()}else yt?.playVideo()}catch{tell('اضغط تشغيل داخل المشغل للمتابعة.',true)}
 }
 function installSession(item){
  if(!navigator.mediaSession)return;
  if(typeof MediaMetadata!=='undefined')navigator.mediaSession.metadata=new MediaMetadata({title:item.title,artist:'رَجْع — '+active.list.name,album:'حصة '+active.day.key});
- const handlers={play:resume,pause,stop,seekbackward:d=>seekBy(-(d.seekOffset||10)),seekforward:d=>seekBy(d.seekOffset||10),seekto:d=>seekTo(d.seekTime)};
+ // Keep native play/pause/stop routing: iOS can resume the existing media
+ // element while the page's JavaScript is suspended in the background.
+ navigator.mediaSession.playbackState='none';
+ const handlers={play:null,pause:null,stop:null,seekbackward:d=>seekBy(-(d.seekOffset||10)),seekforward:d=>seekBy(d.seekOffset||10),seekto:d=>seekTo(d.seekTime)};
  for(const [action,handler] of Object.entries(handlers)){try{navigator.mediaSession.setActionHandler(action,handler)}catch{}}
 }
 function seekTo(time){
@@ -222,10 +226,9 @@ async function openItem(item,offset){
   player.onerror=()=>{if(token===generation)fail(Error('صيغة الملف أو رابط الدرس غير قابل للتشغيل.'))};
   player.onplay=()=>{
    $('lessonPause').textContent='إيقاف مؤقت';
-   if(navigator.mediaSession)navigator.mediaSession.playbackState='playing';
    if(active?.done)void start(active.list);
   };
-  player.onpause=()=>{$('lessonPause').textContent='متابعة';if(navigator.mediaSession)navigator.mediaSession.playbackState='paused';save()};
+  player.onpause=()=>{$('lessonPause').textContent='متابعة';tick();save()};
   player.src=src;player.load();timer=setInterval(()=>tick(),200);
   try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}
   installSession(item);
@@ -247,7 +250,7 @@ async function start(list){
 window.rajaLessons={
  snapshot:()=>JSON.parse(JSON.stringify(lists)),
  applyCloud(next){
-  if(active){const incoming=next.find(l=>l.id===active.list.id),shape=l=>JSON.stringify([l.name,l.minutes,l.start,l.items]);
+  if(active){const incoming=next.find(l=>l.id===active.list.id),shape=l=>JSON.stringify([l.minutes,l.start,l.items.map(i=>[i.id,i.type,i.type==='file'?i.libraryId:i.type==='youtube'?i.videoId:i.url])]);
    if(!incoming||shape(incoming)!==shape(active.list))stop();
    else{Object.assign(active.list,incoming);active.day=core.ensureDay(active.list);next=next.map(l=>l.id===active.list.id?active.list:l)}
   }

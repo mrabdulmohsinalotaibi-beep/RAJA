@@ -22,6 +22,13 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
   await page.getByRole('button',{name:'تشغيل',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('#lessonAudio').currentTime>0);
   assert.equal(await page.locator('#lessonVideo').evaluate(e=>e.hidden),true);
+  const nativeResume=await page.evaluate(async()=>{
+   const audio=document.querySelector('#lessonAudio'),source=audio.currentSrc,checks=[];
+   for(let i=0;i<3;i++){audio.pause();const at=audio.currentTime;await new Promise(r=>setTimeout(r,100));await audio.play();checks.push({source:audio.currentSrc===source,position:Math.abs(audio.currentTime-at)<0.15,playing:!audio.paused})}
+   return checks;
+  });
+  for(const check of nativeResume)assert.deepEqual(check,{source:true,position:true,playing:true});
+
   await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'القوائم',exact:true}).click();
   await page.locator('#lessonName').fill('قائمة MP3');await page.locator('#lessonCreate button').click();
   await page.locator('.lesson-list summary').click();
