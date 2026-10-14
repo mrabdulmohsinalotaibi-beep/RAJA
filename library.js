@@ -48,6 +48,20 @@ async function read(store,id){
     r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);
   });
 }
+// A file is in this device's library only if its actual media Blob exists here.
+// Previously synchronized cloud-only metadata must never appear as playable media.
+async function localItems(){
+  const [items,keys]=await Promise.all([read('items'),readBlobKeys()]);
+  const localIds=new Set(keys);
+  return items.filter(item=>!item.deleted&&(item.type!=='file'||localIds.has(item.id)));
+}
+async function readBlobKeys(){
+  const d=await db();
+  return new Promise((ok,no)=>{
+    const r=d.transaction('blobs','readonly').objectStore('blobs').getAllKeys();
+    r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);
+  });
+}
 async function removeLocal(id){
   const d=await db();
   await new Promise((ok,no)=>{
@@ -104,14 +118,14 @@ async function showItem(item){
 }
 async function exportItem(item){
   const stored=await read('blobs',item.id);
-  if(!stored?.blob){const a=document.createElement('a');a.href='/api/cloud-file?id='+encodeURIComponent(item.id)+'&download=1';a.download=item.name;document.body.append(a);a.click();a.remove();say('بدأ حفظ نسخة من ملف الحساب على الجهاز.');return;}
+  if(!stored?.blob)throw Error('الملف غير محفوظ على هذا الجهاز. أعد إضافته من ملفات جهازك.');
   const u=URL.createObjectURL(stored.blob),a=document.createElement('a');
   a.href=u;a.download=item.name;document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(u),60000);
   say('أُرسل الملف إلى التنزيلات. على الآيفون قد تحتاج اختيار «حفظ في الملفات».');
 }
 async function refresh(){
-  const items=(await read('items')).filter(x=>!x.deleted).sort((a,b)=>b.at-a.at);
+  const items=(await localItems()).sort((a,b)=>b.at-a.at);
   const filtered=items.filter(x=>x.name.toLowerCase().includes($('localSearch').value.trim().toLowerCase()));
   $('localCount').textContent=items.filter(x=>x.type==='file').length+' ملفات محفوظة • '+items.filter(x=>x.type==='youtube').length+' روابط يوتيوب';
   const root=$('localItems');root.replaceChildren();
@@ -120,15 +134,14 @@ async function refresh(){
     const row=document.createElement('div');row.className='lib-item';
     const copy=document.createElement('div');copy.className='lib-copy';
     const strong=document.createElement('strong');strong.textContent=item.name;
-    const small=document.createElement('small');small.textContent=(item.type==='youtube'?'رابط مشاهدة فقط، وليس فيديو منزّلًا':fmt(item.size)+(item.cloud?(item.local===false?' — محفوظ في الحساب؛ يتطلب الإنترنت':' — تمت المزامنة؛ متاح دون إنترنت'):' — محفوظ على هذا الجهاز؛ بانتظار المزامنة عند الدخول'))+' • '+new Date(item.at).toLocaleDateString('ar-SA');
+    const small=document.createElement('small');small.textContent=(item.type==='youtube'?'رابط مشاهدة فقط، وليس فيديو منزّلًا':fmt(item.size)+' — محفوظ على هذا الجهاز فقط')+' • '+new Date(item.at).toLocaleDateString('ar-SA');
     copy.append(strong,small);
     const actions=document.createElement('div');actions.className='line';
     actions.append(button(item.type==='youtube'?'مشاهدة':'تشغيل',()=>showItem(item)));
     if(item.type==='file'){
       actions.append(button('حفظ في الملفات',()=>exportItem(item)));
-      if(item.cloud&&item.local===false)actions.append(button('حفظ دون إنترنت',async()=>{say('جارٍ حفظ نسخة للعمل دون إنترنت...');await getBlob(item.id);await refresh();say('أصبح الملف متاحًا دون إنترنت على هذا الجهاز.')}));
     }
-    actions.append(button('حذف',async()=>{if(confirm(window.rajaAuthState?.()?.user?.id?'حذف هذا الملف من حسابك وأجهزتك المتزامنة؟':'هل تريد حذف هذا العنصر من مكتبة الجهاز؟')){if(window.rajaAuthState?.()?.user?.id)await write({...item,deleted:true});else await removeLocal(item.id);await refresh();window.dispatchEvent(new Event('raja-library-change'));say('تم الحذف؛ ستُزامن العملية عند الاتصال.');}},true));
+    actions.append(button('حذف',async()=>{if(confirm('حذف هذا العنصر من مكتبة هذا الجهاز فقط؟')){await removeLocal(item.id);await refresh();window.dispatchEvent(new Event('raja-library-change'));say('حُذف العنصر من هذا الجهاز فقط.');}},true));
     row.append(copy,actions);root.append(row);
   }
   if(navigator.storage?.estimate) {
@@ -214,38 +227,20 @@ function setProgress(stage, bytes=0, total=0){
   }
 }
 
-async function getBlob(id){
- const stored=await read('blobs',id);if(stored?.blob)return stored.blob;
- const item=await read('items',id);if(!item?.cloud||item.deleted)return null;
- const response=await fetch('/api/cloud-file?id='+encodeURIComponent(id),{credentials:'same-origin',cache:'no-store'});
- if(!response.ok)throw Error('تعذر تنزيل ملف الحساب. تحقق من الاتصال والدخول.');
- const blob=await response.blob();if(blob.size!==item.size)throw Error('لم يكتمل تنزيل الملف.');
- await write({...item,local:true},blob);return blob;
-}
+async function getBlob(id){return (await read('blobs',id))?.blob||null}
 window.rajaLibrary={
- items:async()=>(await read('items')).filter(x=>!x.deleted),rawItems:()=>read('items'),rawBlob:async id=>(await read('blobs',id))?.blob,
+ items:localItems,rawItems:()=>read('items'),rawBlob:async id=>(await read('blobs',id))?.blob,
  getBlob,importFiles,mediaAccept:MEDIA_ACCEPT,
  async source(id){
   const item=await read('items',id),stored=await read('blobs',id);
-  if(!item||item.deleted)throw Error('الملف محذوف من المكتبة.');
+  if(!item||item.deleted)throw Error('المقطع غير موجود في مكتبة هذا الجهاز.');
   if(stored?.blob)return {blob:stored.blob,mime:item.mime||stored.blob.type};
-  if(item.cloud)return {url:'/api/cloud-file?id='+encodeURIComponent(id),mime:item.mime};
-  throw Error('الملف غير موجود على هذا الجهاز ولم تكتمل مزامنته.');
+  throw Error('المقطع غير محفوظ على هذا الجهاز. أعد استيراده من «ملفاتي».');
  },
- async applyCloud(files,links){
-  const current=await read('items'),map=new Map(current.map(x=>[x.id,x]));
-  for(const file of files){const local=map.get(file.id);if(file.status==='deleted'){if(local&&!local.deleted)await removeLocal(file.id);continue}if(local?.deleted)continue;await write({...local,...file,type:'file',cloud:true,local:local?local.local!==false:false})}
-  const cloudLinks=new Map(links.map(x=>[x.id,x]));
-  for(const item of current)if(item.type==='youtube'&&!cloudLinks.has(item.id))await removeLocal(item.id);
-  for(const link of links)await write(link);
-  await refresh();window.dispatchEvent(new Event('raja-cloud-library-applied'));
- },
- async markUploaded(id){const item=await read('items',id);if(item&&!item.deleted){await write({...item,cloud:true,local:true});await refresh()}},
- async forgetDeleted(id){await removeLocal(id)},
  async importGuest(){
   const guest=await new Promise((ok,no)=>{const r=indexedDB.open('raja-local-library',1);r.onupgradeneeded=()=>{for(const store of ['items','blobs'])if(!r.result.objectStoreNames.contains(store))r.result.createObjectStore(store,{keyPath:'id'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
   const all=store=>new Promise((ok,no)=>{const r=guest.transaction(store).objectStore(store).getAll();r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
-  try{const [items,blobs]=await Promise.all([all('items'),all('blobs')]),existing=new Set((await read('items')).map(x=>x.id)),byId=new Map(blobs.map(x=>[x.id,x.blob]));for(const item of items)if(!existing.has(item.id)&&!item.deleted)await write({...item,cloud:false},byId.get(item.id));await refresh();window.dispatchEvent(new Event('raja-library-change'));return items.length}finally{guest.close()}
+  try{const [items,blobs]=await Promise.all([all('items'),all('blobs')]),existing=new Set((await localItems()).map(x=>x.id)),byId=new Map(blobs.map(x=>[x.id,x.blob]));for(const item of items)if(!existing.has(item.id)&&!item.deleted)await write({...item,cloud:false},byId.get(item.id));await refresh();window.dispatchEvent(new Event('raja-library-change'));return items.length}finally{guest.close()}
  }
 };
 window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality}) {
