@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-let state={configured:false,user:null,methods:{google:false,email:false,sms:false}},channel='email',checking=false;
+let state={configured:false,user:null,methods:{password:false,google:false,email:false,sms:false}},channel='email',checking=false;
 const gate=$('rajaAuthGate');
 gate.className='card';$('contactAuth').after(gate);
 function status(message,bad=false){$('contactAuthStatus').textContent=message;$('contactAuthStatus').style.color=bad?'#9c363d':'#31634d'}
@@ -23,20 +23,21 @@ const ready=async()=>{
  try{
   const response=await fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'});if(!response.ok)throw Error();
   const data=await response.json();
-  state={configured:data.configured===true,user:data.user||null,methods:data.methods||{google:data.configured===true,email:false,sms:false}};
+  state={configured:data.configured===true,guestAllowed:data.guestAllowed===true,user:data.user||null,methods:data.methods||{google:data.configured===true,email:false,sms:false}};
  }catch{
-  state={configured:true,user:null,methods:{google:false,email:false,sms:false},error:true};
+  state={configured:true,user:null,methods:{password:false,google:false,email:false,sms:false},error:true};
  }
- $('rajaAccount').hidden=!state.user;$('contactAuth').hidden=!!state.user;gate.hidden=!state.methods.google||!!state.user;
+ $('rajaAccount').hidden=!state.user;$('contactAuth').hidden=!!state.user||(!state.methods.email&&!state.methods.sms);
+ $('passwordAuth').hidden=!!state.user||!state.methods.password;gate.hidden=!state.methods.google||!!state.user;
  if(state.user){
   $('rajaAccountName').textContent=state.user.name||'حسابك في رَجْع';$('rajaAccountEmail').textContent=state.user.email||state.user.phone||'';
   $('rajaAuthStatus').textContent='تم تسجيل الدخول';$('rajaAuthInfo').textContent='مكتبتك الشخصية منفصلة عن الحسابات الأخرى على الجهاز.';
  }else{
-  $('rajaAuthStatus').textContent=state.error?'تعذر التحقق من خدمة الدخول':state.configured?'سجل الدخول إلى حسابك':'المكتبة المحلية متاحة';
-  $('rajaAuthInfo').textContent=state.configured?'تحقق من بريدك أو جوالك للوصول إلى مكتبتك.':'يمكنك استخدام مكتبة الجهاز الآن. الدخول بالبريد والجوال يحتاج تفعيل مزود التحقق.';
-  if(state.configured){window.rajaSwitchTab?.('settings')}
+  $('rajaAuthStatus').textContent=state.error?'تعذر التحقق من خدمة الدخول':state.methods.password?'الدخول بالبريد وكلمة المرور متاح':'المكتبة المحلية متاحة';
+  $('rajaAuthInfo').textContent=state.methods.password?'سجل الدخول أو أنشئ حسابًا جديدًا. ويمكنك متابعة مكتبة هذا الجهاز دون تسجيل دخول.':state.configured?'سجل الدخول إلى حسابك للوصول إلى مكتبتك.':'يمكنك استخدام مكتبة الجهاز الآن.';
+  if(state.configured&&!state.guestAllowed){window.rajaSwitchTab?.('settings')}
  }
- document.documentElement.classList.toggle('raja-auth-required',state.configured&&!state.user);
+ document.documentElement.classList.toggle('raja-auth-required',state.configured&&!state.user&&!state.guestAllowed);
  method(channel);return state;
 };
 window.rajaAuthReady=ready();window.rajaAuthState=()=>state;

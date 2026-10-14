@@ -8,8 +8,8 @@ let dbOpen, previewURL = '';
 async function db(){
   if(!dbOpen) dbOpen=(async()=>{
     const auth=await (window.rajaAuthReady||Promise.resolve({configured:false,user:null}));
-    if(auth?.configured && !auth.user?.id)throw Error('يرجى تسجيل الدخول أولًا.');
-    const name=auth?.configured
+    if(auth?.configured && !auth.user?.id && !auth.guestAllowed)throw Error('يرجى تسجيل الدخول أولًا.');
+    const name=auth?.user?.id
       ? 'raja-personal-library-'+String(auth.user.id).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,100)
       : 'raja-local-library';
     return new Promise((ok,no)=>{

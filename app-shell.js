@@ -5,9 +5,9 @@
   const $ = id => document.getElementById(id);
   const historyKey = () => {
     const auth=window.rajaAuthState?.();
-    return auth?.configured && auth.user?.id
+    return auth?.user?.id
       ? 'raja-download-requests-v1-'+String(auth.user.id).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,100)
-      : auth?.configured ? 'raja-download-requests-v1-locked' : 'raja-download-requests-v1';
+      : auth?.configured&&!auth.guestAllowed ? 'raja-download-requests-v1-locked' : 'raja-download-requests-v1';
   };
   const PANELS = ['search', 'downloads', 'files', 'organizer', 'settings'];
   let currentTab = 'search';
