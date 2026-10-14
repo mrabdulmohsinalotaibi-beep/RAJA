@@ -1,150 +1,26 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#292929"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="رَجْع"><title>رَجْع | RAJA</title><style>*{box-sizing:border-box}body{margin:0;font:16px system-ui;background:radial-gradient(circle at top,#30234d,#0b1020 70%);color:#fff;min-height:100vh}main{max-width:900px;margin:auto;padding:22px}header{display:flex;align-items:center;justify-content:space-between}h1{font-size:clamp(30px,6vw,54px);margin:50px 0 5px}p,small{color:#bbb4d2;line-height:1.8}.card{border:1px solid #3b3656;background:#191a32;border-radius:22px;padding:20px;margin:22px 0}video,iframe.youtube{width:100%;aspect-ratio:16/9;background:#080a13;border-radius:14px}button{background:#7954df;border:0;border-radius:10px;color:#fff;padding:12px 17px;font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:default}input{font:inherit;color:#fff;background:#11142a;border:1px solid #50486c;border-radius:10px;padding:12px;min-width:0}input[type=range]{accent-color:#a48aff;padding:0}.controls,.line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.controls{margin-top:12px}.controls input[type=range]{flex:1}.line input[type=url]{flex:1}.muted{color:#bdb5d4}label{display:grid;gap:8px;margin:12px 0}form{display:grid;grid-template-columns:1fr 1fr;gap:10px}form .wide{grid-column:1/-1}footer{text-align:center;color:#9d94b8;padding:30px}@media(max-width:600px){form{grid-template-columns:1fr}.controls button{padding:9px}.card{padding:14px}}
-[hidden]{display:none!important}
-#library{scroll-margin-top:20px}
-.library-note{color:#c9c3de;font-size:.93rem}
-.lib-upload{display:inline-flex;align-items:center;justify-content:center;background:#7954df;color:#fff;padding:12px 17px;border-radius:10px;cursor:pointer}
-.lib-upload input{position:absolute;opacity:0;width:1px;height:1px}
-.lib-upload:focus-within{outline:2px solid #e7d8ff}
-.lib-item{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:14px 0;border-bottom:1px solid #343450}
-.lib-copy{display:flex;flex-direction:column;gap:6px;min-width:0;overflow-wrap:anywhere}
-.lib-copy strong{font-size:1rem}
-.lib-copy small{font-size:.79rem}
-.lib-btn{font-size:.88rem;padding:9px 12px;background:#302a50;border:1px solid #62557d;white-space:nowrap}
-.lib-btn.danger{color:#ffd0d6;border-color:#79505f}
-#localSearch{flex:1;min-width:180px}
-#localStatus{min-height:1.3rem;font-weight:600}
-@media(max-width:600px){.lib-item{align-items:stretch;flex-direction:column}.lib-item .line{gap:7px}.lib-btn{flex:1}.lib-upload{width:100%}}
-
-#formatChooser{border:1px solid #7760a9;background:linear-gradient(155deg,#24203e,#17172e);border-radius:20px;padding:18px;margin-top:18px;scroll-margin-top:15px}
-#formatChooser h3{margin:0 0 10px;font-size:1.3rem}
-#formatCover{width:220px;max-width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;border:1px solid #514873}
-.format-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
-.format-option{background:#272341;color:#fff;border:1px solid #5a507d;display:flex;flex-direction:column;align-items:flex-start;text-align:right;gap:7px;min-height:85px}
-.format-option.chosen{border-color:#ceb7ff;background:#4c367a;box-shadow:inset 0 0 0 1px #ceb7ff}
-.format-option small{font-size:12px;color:#e5ddfa}
-.format-actions{display:flex;gap:10px;flex-wrap:wrap}
-.format-actions button{flex:1;min-width:135px}
-.format-warning{color:#ffdaaa}
-#formatNotice{line-height:1.8}
-.format-source{font-size:12px;color:#bdacd7}
-@media(max-width:450px){.format-options{grid-template-columns:1fr}.format-actions button{min-width:100%}}
-
-/* RAJA 2026 mobile downloader: charcoal and muted amber */
-:root{color-scheme:dark;--raja-bg:#292929;--raja-panel:#333333;--raja-border:#505050;--raja-gold:#af8244;--raja-text:#f5f3ef}
-html{scroll-behavior:smooth;scroll-padding-top:22px}
-body{background-color:var(--raja-bg);background-image:linear-gradient(0deg,transparent 97%,rgba(255,255,255,.018) 98%),linear-gradient(90deg,transparent 97%,rgba(255,255,255,.018) 98%);background-size:35px 35px;color:var(--raja-text);min-height:100svh;line-height:1.6}
-main{max-width:960px;padding:20px 22px 130px;min-height:100svh}
-.raja-top{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.raja-brand{display:inline-flex;flex-direction:column;gap:0;text-decoration:none;color:inherit}
-.raja-brand strong{font-size:clamp(24px,4.5vw,32px);line-height:1.2;font-weight:900;letter-spacing:-1px}
-.raja-brand small{font-size:11px;letter-spacing:2px;color:var(--raja-gold);font-weight:800}
-.raja-top-note{font-size:12px;color:#a7a7a7;text-align:left}
-[data-tab-panel][hidden]{display:none!important}
-.raja-panel{padding-top:18px;max-width:800px;margin-inline:auto}
-.raja-heading{font-size:clamp(34px,5.4vw,53px);margin:10px 0 20px;text-align:right;line-height:1.3;font-weight:900}
-.search-primary{margin:20px 0 14px;display:flex;align-items:stretch;border-radius:19px;border:1px solid #555;background:#333;min-height:74px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.06)}
-.search-primary:focus-within{border-color:#c39a61}
-.search-primary input{min-width:0;flex:1;border:0;background:transparent;border-radius:0;box-shadow:none;font-size:clamp(16px,3vw,20px);height:auto;padding:17px 14px;text-align:right}
-.search-primary input:focus{outline:0}
-.search-primary .paste-btn{border:0;color:#e8e8e8;background:none;padding:0 17px;min-width:52px;border-radius:0;display:flex;align-items:center;justify-content:center}
-.search-primary .paste-btn svg{width:24px;height:24px}
-.search-primary .search-submit{width:84px;background:var(--raja-gold);color:white;border:0;border-radius:0;font-size:23px;display:flex;align-items:center;justify-content:center}
-.search-primary .search-submit svg{width:30px;height:30px}
-.search-primary button:hover{filter:brightness(1.08)}
-.raja-search-helper{color:#b9b6b1;font-size:13px;margin:0 3px 25px;min-height:20px}
-.raja-browse{display:flex;align-items:center;justify-content:center;padding:15px}
-.raja-pill{display:inline-flex;align-items:center;gap:11px;background:var(--raja-gold);border:0;border-radius:999px;padding:13px 28px;font-weight:750;font-size:17px;text-decoration:none;color:#fff;cursor:pointer}
-.raja-pill svg{height:21px;width:21px}
-.raja-bottom-nav{z-index:30;position:fixed;bottom:0;left:0;right:0;width:100%;display:flex;justify-content:center;background:rgba(40,40,40,.96);backdrop-filter:blur(16px);border:1px solid #4a4a4a;border-radius:22px 22px 0 0;box-shadow:0 -5px 23px #0002;padding:9px max(12px,env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
-.raja-nav-inner{width:min(950px,100%);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
-.raja-nav{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;min-height:67px;background:none;border:0;border-radius:12px;color:#b7b7b7;font-size:13px;padding:7px 2px;white-space:nowrap}
-.raja-nav svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linejoin:round;stroke-linecap:round}
-.raja-nav.active{color:#d19d57}
-.raja-nav.active svg{stroke:#d19d57}
-.raja-nav:hover{background:#393939}
-.raja-section-title{margin:6px 0 13px;font-size:25px;font-weight:800}
-.raja-section-intro{color:#bfbdb9;font-size:14px;margin-bottom:16px}
-.card{background:rgba(50,50,50,.96);border-color:#575757;border-radius:17px;box-shadow:none}
-button,.lib-upload{background:var(--raja-gold);border-radius:12px}
-button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #efd3a7;outline-offset:3px}
-input{background:#2c2c2c;border-color:#606060}
-#formatChooser{border-color:#786245;background:#32302d;padding:16px}
-.format-option{background:#343434;border-color:#626262;text-align:right}
-.format-option.chosen{border-color:#e4b476;background:#59472e;box-shadow:inset 0 0 0 1px #e9c995}
-.format-option small{color:#ddd3c4}
-.lib-btn{background:#434343;border-color:#646464;color:#fff}
-#formatCover{border-color:#71614f}
-#localSearch{background:#252525}
-#localStatus{min-height:24px}
-.library-note{color:#c6c1b8}
-.raja-advanced{margin:18px 0}
-.raja-advanced>summary{cursor:pointer;font-weight:750;color:#d3b78f;padding:10px 2px}
-.raja-advanced[open]>summary{margin-bottom:15px}
-.raja-file-picker{margin:18px 0;color:#bfbcb8}
-.raja-file-picker input{max-width:100%;display:block;margin:9px 0}
-.raja-tip{font-size:12px;color:#aaa;max-width:700px}
-.raja-settings-list{max-width:760px}
-.raja-settings-item{padding:16px;margin:10px 0;border:1px solid #575757;border-radius:14px;background:#323232}
-.raja-settings-item h3{margin:0 0 6px;font-size:18px}
-.raja-settings-item p{margin:4px 0}
-.request-row{padding:15px 3px;display:flex;gap:14px;justify-content:space-between;align-items:center;border-bottom:1px solid #474747}
-.request-detail{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere}
-.request-detail small{font-size:12px}
-.request-source{max-width:490px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;direction:ltr;text-align:right}
-.quiet-btn{background:#49453d;border:1px solid #696050;color:#e5d3b4;font-size:13px;white-space:nowrap}
-.raja-notice{font-size:13px;color:#c8bcaa;margin:8px 0}
-@media(min-width:740px){.raja-heading{margin-top:30px}.search-primary{min-height:85px}.raja-browse{padding:28px}.raja-panel{padding-top:24px}}
-@media(max-width:480px){main{padding:14px 16px 130px}.raja-top{min-height:60px}.raja-top-note{font-size:10px}.raja-heading{margin:18px 0 24px}.search-primary{min-height:65px;border-radius:18px}.search-primary .search-submit{width:68px}.search-primary .paste-btn{min-width:40px;padding:0 11px}.raja-nav{font-size:12px}.request-row{align-items:stretch;flex-direction:column}.request-row .quiet-btn{align-self:start}}
-
-.local-download-progress{margin:14px 0;padding:12px;background:#292929;border:1px solid #6b5b46;border-radius:12px}
-.local-progress-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:#e9d0a8;font-size:12px}
-.local-download-progress progress{display:block;width:100%;height:13px;margin-top:10px;accent-color:#af8244}
-.local-download-progress progress::-webkit-progress-bar{background:#49443d;border-radius:10px}
-.local-download-progress progress::-webkit-progress-value{background:#af8244;border-radius:10px}
-
-.format-download-anchor{display:flex;align-items:center;justify-content:center;background:var(--raja-gold,#af8244);border-radius:12px;padding:12px 17px;color:#fff;font:inherit;cursor:pointer;text-decoration:none;text-align:center;min-height:46px}
-.format-download-anchor[aria-disabled="true"]{opacity:.5;cursor:not-allowed;pointer-events:none}
-.format-download-anchor[aria-disabled="false"]:hover{filter:brightness(1.07)}
-
-/* Google individual sign-in */
-.raja-account{display:flex;align-items:center;gap:8px;margin-inline-start:auto}
-.raja-account-id{display:flex;flex-direction:column;max-width:190px;min-width:0;text-align:left;gap:1px}
-.raja-account-id strong,.raja-account-id small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.raja-account-id small{font-size:10px;color:#b8b8b8}
-.raja-signout{padding:7px 10px;font-size:12px;background:#454545;border:1px solid #727272}
-.raja-auth-overlay{position:fixed;z-index:70;inset:0;background:#292929;padding:20px;display:flex;align-items:center;justify-content:center;min-height:100svh}
-.raja-auth-card{width:min(430px,100%);background:#343434;border:1px solid #5e5344;border-radius:24px;padding:clamp(24px,7vw,42px);text-align:center;box-shadow:0 15px 55px #0004}
-.raja-auth-icon{width:74px;height:74px;border-radius:21px;background:#ae8244;display:grid;place-items:center;font-size:36px;font-weight:900;margin:0 auto 20px}
-.raja-auth-card h1{margin:4px 0 15px;font-size:29px}
-.raja-auth-card p{color:#cfcbc5;font-size:15px}
-.raja-auth-button{display:flex;align-items:center;justify-content:center;gap:12px;background:#f8f8f8;color:#242424;border-radius:12px;text-decoration:none;font-weight:750;padding:14px 18px;margin-top:24px}
-.raja-google-letter{font-size:24px;font-weight:900;color:#4285f4}
-.raja-auth-required body{overflow:hidden}
-.raja-auth-required .raja-bottom-nav{display:none}
-@media(max-width:480px){.raja-top-note{display:none}.raja-account-id{max-width:145px}}
-
-.ss-fallback{margin:16px 0;padding:15px;background:#37322d;border:1px solid #806647;border-radius:14px}
-.ss-fallback p{margin:0 0 11px;color:#efe0ca;font-size:14px}
-.ss-fallback small{display:block;margin-top:10px;line-height:1.8;color:#c9c2b7}
-.ss-fallback-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:#a67b40;border-radius:12px;padding:12px 18px;color:#fff;text-decoration:none;font-weight:750}
-.ss-fallback-link:hover{background:#bc8f50}
-.ss-auto-label{display:flex;align-items:center;gap:9px;font-size:13px;line-height:1.7;color:#f0e3cf;margin:0 0 10px}.ss-auto-label input{accent-color:#c29960;min-width:18px;min-height:18px}.ss-countdown{margin:6px 0 8px!important}.ss-cancel{background:#444;color:#fff;border:1px solid #76664f;padding:8px 14px;margin:0 0 10px}
-
-.org-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0;border-bottom:1px solid #59534b}
-.org-desc{display:flex;flex-direction:column;overflow-wrap:anywhere;min-width:0}
-.org-desc small{font-size:12px}
-.org-actions{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}
-.org-btn{font-size:13px;padding:8px 11px;background:#55493a;border:1px solid #847052}
-.org-list{padding:14px;margin:12px 0;background:#35332e;border:1px solid #5b4b37;border-radius:13px}
-#organizerCount{color:#ceb391}
-#organizerStatus{min-height:28px}
-#organizerPlaylistName,#organizerTitle{flex:1;min-width:150px}
-.raja-nav-inner{grid-template-columns:repeat(5,minmax(0,1fr))}
-@media(max-width:500px){.raja-nav{font-size:11px}.org-item{align-items:stretch;flex-direction:column}.org-actions{gap:5px}}
-</style></head><body><main>
-<header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><small class="raja-top-note">كل صوتٍ له رَجْع</small><div class="raja-account" id="rajaAccount" hidden><div class="raja-account-id"><strong id="rajaAccountName"></strong><small id="rajaAccountEmail"></small></div><button id="rajaLogout" class="raja-signout" type="button">خروج</button></div></header>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#eeebe5"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="رَجْع"><title>رَجْع | RAJA</title><link rel="stylesheet" href="/recorder.css"></head><body><main>
+<header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><strong>رَجْع</strong><small>RAJA</small></a><button id="recorderMenu" class="recorder-menu" type="button" aria-label="القوائم والتحميل والحساب"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6"/></svg></button><button id="recorderBack" class="recorder-back" type="button" aria-label="العودة إلى المسجل" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5 7 7-7 7M17 12H3"/></svg></button></header>
+<section id="recorderScreen" aria-label="المسجل">
+<div class="recorder-status"><span><b></b>حصة اليوم</span><span id="recorderIndex">مكتبتك اليومية</span></div>
+<div class="recorder-display"><div class="recorder-list" id="recorderList">كل صوتٍ له رَجْع</div><h1 id="recorderTitle">ابدأ رحلة الاستماع</h1><p id="recorderSubtitle">أضف دروسك إلى قائمة من زر الإعدادات</p><input id="recorderSeek" class="recorder-range" type="range" min="0" max="1" value="0" step="0.1" aria-label="موضع الاستماع" disabled><div class="recorder-time"><span id="recorderElapsed">00:00</span><span id="recorderDuration">30:00</span></div></div>
+<div class="recorder-media" id="recorderMedia"><div class="recorder-cassette"><div class="recorder-reels"><span class="recorder-reel" aria-hidden="true"></span><div class="recorder-tape-label"><span>رَجْع</span>DAILY</div><span class="recorder-reel" aria-hidden="true"></span></div><div class="recorder-speaker" aria-hidden="true"></div></div>
+<section id="lessonNow" class="card lesson-now" hidden aria-label="مشغل الدروس اليومية">
+<strong id="lessonNowTitle"></strong>
+<audio id="lessonAudio" controls preload="metadata" hidden></audio>
+<video id="lessonVideo" controls playsinline preload="metadata" hidden></video>
+<div id="lessonYoutubeWrap" hidden><div id="lessonYoutube"></div></div>
+<p id="lessonProgress" role="status"></p>
+<progress id="lessonDailyProgress" max="100" value="0" aria-label="تقدم حصة اليوم"></progress>
+<div class="line"><button type="button" id="lessonPause" class="org-btn">إيقاف مؤقت</button><button type="button" id="lessonReplay" class="org-btn">إعادة حصة اليوم</button><button type="button" id="lessonStop" class="org-btn">إغلاق المشغل</button></div>
+</section>
+</div>
+<div class="recorder-controls"><button type="button" id="recorderPrevious" aria-label="الدرس السابق"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14M19 5 8 12l11 7Z"/></svg></button><button type="button" id="recorderBack10" aria-label="رجوع عشر ثوانٍ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9a8 8 0 1 1 0 6M4 3v6h6"/></svg></button><button type="button" id="recorderPlay" class="recorder-play" aria-label="تشغيل"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 12 8-12 8Z"/></svg></button><button type="button" id="recorderForward10" aria-label="تقديم عشر ثوانٍ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 9a8 8 0 1 0 0 6M20 3v6h-6"/></svg></button><button type="button" id="recorderNext" aria-label="الدرس التالي"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14M5 5l11 7-11 7Z"/></svg></button></div>
+<div class="recorder-replay"><button type="button" id="recorderReplay">↔ إعادة حصة اليوم</button></div>
+<div class="recorder-summary"><div><span>المدة اليومية</span><strong id="recorderDaily">٣٠ دقيقة</strong></div><div><span>بداية اليوم</span><strong id="recorderDayStart">٥:٠٠ صباحًا</strong></div><div><span>وضع التشغيل</span><strong>متسلسل</strong></div></div><p id="recorderMessage" role="status" aria-live="polite"></p>
+</section>
+<section id="managementScreen" hidden aria-label="إدارة المكتبة والحساب"><nav class="management-tabs" aria-label="إدارة رجع"><button type="button" data-tab-button="organizer">القوائم</button><button type="button" data-tab-button="search">التحميل</button><button type="button" data-tab-button="settings">حسابي</button></nav><div id="manageContent"><div class="management-tools"><button type="button" data-tab-button="files">ملفاتي</button><button type="button" data-tab-button="downloads">سجل التنزيلات</button></div>
 <section class="raja-panel" data-tab-panel="search">
-<h1 class="raja-heading">البحث</h1>
+<h1 class="raja-heading">أضف مقاطعك</h1>
 <div class="search-primary">
 <button id="check" type="button" class="search-submit" aria-label="عرض صيغ التحميل" title="عرض صيغ التحميل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m0 0 5-5m-5 5-5-5M4 20h16"/></svg></button>
 <input id="url" type="url" placeholder="رابط التحميل" aria-label="أدخل رابط تحميل الفيديو" autocomplete="url" autocapitalize="off" spellcheck="false">
@@ -209,9 +85,21 @@ input{background:#2c2c2c;border-color:#606060}
 <small>روابط YouTube المحفوظة كاختصار ليست ملفات فيديو. الملفات المحفوظة داخل هذه المكتبة قد تختفي إذا حذفت بيانات المتصفح أو التطبيق؛ استخدم زر «حفظ في الملفات» لإنشاء نسخة مستقلة.</small></div>
 </section>
 <section class="raja-panel" data-tab-panel="organizer" hidden id="organizerSection">
-<h1 class="raja-section-title">مفضلتي وقوائم التشغيل</h1>
-<p class="raja-section-intro">نظم روابط YouTube في قوائم خاصة، وشغّل جزءًا من الفيديو بوقت بداية ونهاية. عند تفعيل Google تتم مزامنة هذه البيانات بين أجهزتك.</p>
-<p id="organizerStatus" role="status" aria-live="polite"></p><p id="organizerCount"></p><div class="line"><button id="organizerSyncNow" type="button" class="org-btn">مزامنة الآن</button></div><section id="organizerConflict" class="card" hidden><h2>تعارض بين الأجهزة</h2><p>وجدنا نسخة أخرى على السحابة. احتفظ رَجْع بنسخة محلية احتياطية ولم يستبدل تعديلاتك.</p><div class="line"><button id="organizerKeepLocal" type="button">اعتماد تعديلات هذا الجهاز</button><button id="organizerUseCloud" type="button" class="org-btn">استخدام نسخة السحابة</button></div></section>
+<h1 class="raja-section-title">مكتبتك الصوتية</h1>
+<p class="raja-section-intro">قوائم مرتبة وحصة يومية لكل قائمة.</p>
+<section class="card" id="lessonLibrary">
+<h2>مكتبة الدروس اليومية</h2>
+<p class="raja-tip">رتّب دروسك وشغّل حصة يومية. زر «إعادة حصة اليوم» يعيد الجزء نفسه؛ اليوم التالي يتابع من أبعد موضع وصلته. بداية اليوم بتوقيت السعودية، وليست موعد تشغيل تلقائي.</p>
+<form id="lessonCreate" class="lesson-form">
+<label>اسم القائمة<input id="lessonName" required maxlength="100" placeholder="مثل: دروس التفسير"></label>
+<label>المدة اليومية بالدقائق<input id="lessonMinutes" required type="number" min="1" max="720" value="30"></label>
+<label>بداية اليوم<input id="lessonStart" required type="time" value="05:00"></label>
+<button type="submit">إنشاء قائمة دروس</button></form>
+<p id="lessonStatus" role="status" aria-live="polite"></p>
+<div id="lessonLists"></div>
+<p class="raja-tip">القوائم والملفات محفوظة على هذا الجهاز. الصوت يدعم أزرار شاشة القفل حيث يسمح الجهاز والمتصفح؛ إغلاق التطبيق بالقوة يوقفه. روابط YouTube تعمل في مشغله المرئي ولا تدعم الاستماع بالخلفية هنا.</p>
+</section>
+<details class="raja-advanced" id="youtubeOrganizer"><summary>المفضلة وقوائم YouTube والأجزاء الزمنية</summary><p id="organizerStatus" role="status" aria-live="polite"></p><p id="organizerCount"></p><div class="line"><button id="organizerSyncNow" type="button" class="org-btn">مزامنة الآن</button></div><section id="organizerConflict" class="card" hidden><h2>تعارض بين الأجهزة</h2><p>وجدنا نسخة أخرى على السحابة. احتفظ رَجْع بنسخة محلية احتياطية ولم يستبدل تعديلاتك.</p><div class="line"><button id="organizerKeepLocal" type="button">اعتماد تعديلات هذا الجهاز</button><button id="organizerUseCloud" type="button" class="org-btn">استخدام نسخة السحابة</button></div></section>
 <section class="card">
 <h2>المفضلة</h2><p class="raja-tip">ألصق رابط الفيديو أولًا في قسم «البحث» ثم ارجع هنا لإضافته.</p>
 <div class="line"><input id="organizerTitle" type="text" maxlength="120" placeholder="اسم للمقطع (اختياري)" aria-label="اسم الفيديو"><button id="organizerFavoriteAdd" type="button">إضافة إلى المفضلة</button></div>
@@ -234,9 +122,10 @@ input{background:#2c2c2c;border-color:#606060}
 <div id="organizerClips"></div>
 <small>التذكيرات تظهر عندما يكون رَجْع مفتوحًا؛ لا ترسل إشعارات في الخلفية أو تشغّل الفيديو دون تفاعل.</small>
 </section>
-</section>
+</details></section>
 <section class="raja-panel" data-tab-panel="settings" hidden>
-<h1 class="raja-section-title">الإعدادات</h1><div class="raja-settings-item"><h3>حسابي في رَجْع</h3><p id="rajaAuthStatus">جارٍ التحقق من حالة الدخول...</p><p id="rajaAuthInfo" class="raja-tip"></p></div>
+<h1 class="raja-section-title">حسابي والإعدادات</h1><div class="raja-account" id="rajaAccount" hidden><div class="raja-account-id"><strong id="rajaAccountName"></strong><small id="rajaAccountEmail"></small></div><button id="rajaLogout" class="raja-signout" type="button">خروج</button></div>
+<div id="contactAuth" class="card"><h2>أهلًا بك في رَجْع</h2><p>دخول أو إنشاء حساب بالبريد الإلكتروني أو الجوال.</p><div class="auth-channels" role="group" aria-label="طريقة الدخول"><button type="button" data-auth-channel="email" aria-pressed="true">البريد الإلكتروني</button><button type="button" data-auth-channel="sms" aria-pressed="false">رقم الجوال</button></div><form id="contactAuthForm" class="auth-form"><label><span id="contactAuthLabel">البريد الإلكتروني</span><input id="contactAuthIdentity" type="email" dir="ltr" autocomplete="email" placeholder="name@example.com" required maxlength="254"></label><label id="contactCodeLabel" hidden>رمز التحقق<input id="contactAuthCode" dir="ltr" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,10}" minlength="4" maxlength="10"></label><button id="contactAuthSubmit" type="submit">متابعة</button><button id="contactAuthChange" type="button" class="org-btn" hidden>تغيير البريد أو الجوال</button></form><p id="contactAuthStatus" class="auth-status" role="status" aria-live="polite"></p><small>للعميل الجديد يُنشأ الحساب بعد التحقق.</small></div><div class="raja-settings-item"><h3>حسابي في رَجْع</h3><p id="rajaAuthStatus">جارٍ التحقق من حالة الدخول...</p><p id="rajaAuthInfo" class="raja-tip"></p></div>
 <div class="raja-settings-list">
 <div class="raja-settings-item"><h3>تثبيت رَجْع</h3><p>يمكن إضافة رَجْع إلى الشاشة الرئيسية دون متجر التطبيقات.</p><button id="install" type="button" hidden>تثبيت التطبيق</button><small id="installHelp">في Safari اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية».</small></div>
 <div class="raja-settings-item"><h3>الخصوصية والتخزين</h3><p>التنزيلات تحفظ في جهاز المستخدم. «ملفاتي» منفصلة لكل متصفح وجهاز ولا تتزامن تلقائيًا.</p><small>يمكن للخادم تجهيز الملفات مؤقتًا حتى يبدأ تنزيلها، ثم يحذف الملفات المؤقتة. استخدم المحتوى الذي يسمح لك بتنزيله.</small></div>
@@ -245,14 +134,10 @@ input{background:#2c2c2c;border-color:#606060}
 <p id="count"></p><button id="clear" type="button" class="lib-btn">مسح الجدولة المحلية</button>
 </details></div>
 </section>
+</div></section>
+<footer class="recorder-footer">© <span id="copyrightYear">٢٠٢٦</span> رَجْع · جميع الحقوق محفوظة<br><strong dir="ltr">Abdulmo7sin</strong><p><button type="button" data-legal="privacy">الخصوصية</button> · <button type="button" data-legal="terms">شروط الاستخدام</button></p></footer>
 </main>
-<nav class="raja-bottom-nav" aria-label="التنقل داخل رَجْع"><div class="raja-nav-inner">
-<button type="button" class="raja-nav active" data-tab-button="search" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16.3 16.3 5 5"/></svg><span>البحث</span></button>
-<button type="button" class="raja-nav" data-tab-button="downloads"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v11m0 0 4-4m-4 4-4-4"/></svg><span>التنزيلات</span></button>
-<button type="button" class="raja-nav" data-tab-button="files"><svg viewBox="0 0 24 24"><path d="M3 7a3 3 0 0 1 3-3h4l2 2h6a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3Z"/></svg><span>ملفاتي</span></button>
-<button type="button" class="raja-nav" data-tab-button="organizer"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16M8 5v0M8 12v0M8 19v0"/></svg><span>قوائمي</span></button>
-<button type="button" class="raja-nav" data-tab-button="settings"><svg viewBox="0 0 24 24"><path d="M9.4 2.7 10 1.5h4l.6 1.2 2 .8 1.3-.4 2.8 2.8-.4 1.3.8 2 1.2.6v4l-1.2.6-.8 2 .4 1.3-2.8 2.8-1.3-.4-2 .8-.6 1.2h-4l-.6-1.2-2-.8-1.3.4-2.8-2.8.4-1.3-.8-2-1.2-.6v-4l1.2-.6.8-2-.4-1.3 2.8-2.8 1.3.4Z"/><circle cx="12" cy="12" r="3"/></svg><span>الإعدادات</span></button>
-</div></nav>
+<dialog id="legalDialog" aria-labelledby="legalTitle"><h2 id="legalTitle"></h2><div id="legalContent"></div><button type="button" id="legalClose">إغلاق</button></dialog>
 <div id="rajaAuthGate" class="raja-auth-overlay" hidden aria-label="تسجيل الدخول إلى رَجْع">
   <div class="raja-auth-card">
     <div class="raja-auth-icon" aria-hidden="true">ر</div>
@@ -267,7 +152,7 @@ const $=id=>document.getElementById(id),v=$('player'),key='raja_schedule';let do
 let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('install').hidden=false});$('install').onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('install').hidden=true};if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));v.addEventListener('error',()=>{$('notice').textContent='تعذر تشغيل هذا الملف. تحقق من الرابط وصيغة الوسائط وصلاحيات الخادم.'});const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const entries=()=>{try{return JSON.parse(localStorage.getItem(key)||'[]')}catch{return []}};
 const fmt=t=>Number.isFinite(t)?String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0'):'00:00';
-function load(src,title){$('youtube').hidden=true;$('youtube').removeAttribute('src');v.hidden=false;v.src=src;v.load();$('featured').textContent=title}function youtubeId(raw){try{const u=new URL(raw);const host=u.hostname.toLowerCase().replace(/^www\./,'').replace(/^m\./,'');let id='';if(host==='youtu.be')id=u.pathname.split('/')[1];else if(host==='youtube.com'||host==='youtube-nocookie.com'){if(u.pathname==='/watch')id=u.searchParams.get('v');else if(/^\/(shorts|embed|live)\//.test(u.pathname))id=u.pathname.split('/')[2]}return /^[a-zA-Z0-9_-]{11}$/.test(id||'')?id:null}catch{return null}}function openYouTube(id){v.pause();v.removeAttribute('src');v.load();v.hidden=true;const frame=$('youtube');frame.hidden=false;frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?rel=0';downloadable='';$('download').disabled=true;$('featured').textContent='مشاهدة YouTube';$('notice').textContent='يمكن مشاهدة المقطع هنا إذا كان التضمين مسموحًا. تنزيل الفيديو أو الصوت من YouTube غير متاح عبر هذا المشغل.'}
+function load(src,title){window.dispatchEvent(new Event('raja-other-playback'));$('youtube').hidden=true;$('youtube').removeAttribute('src');v.hidden=false;v.src=src;v.load();$('featured').textContent=title}function youtubeId(raw){try{const u=new URL(raw);const host=u.hostname.toLowerCase().replace(/^www\./,'').replace(/^m\./,'');let id='';if(host==='youtu.be')id=u.pathname.split('/')[1];else if(host==='youtube.com'||host==='youtube-nocookie.com'){if(u.pathname==='/watch')id=u.searchParams.get('v');else if(/^\/(shorts|embed|live)\//.test(u.pathname))id=u.pathname.split('/')[2]}return /^[a-zA-Z0-9_-]{11}$/.test(id||'')?id:null}catch{return null}}function openYouTube(id){window.dispatchEvent(new Event('raja-other-playback'));v.pause();v.removeAttribute('src');v.load();v.hidden=true;const frame=$('youtube');frame.hidden=false;frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?rel=0';downloadable='';$('download').disabled=true;$('featured').textContent='مشاهدة YouTube';$('notice').textContent='يمكن مشاهدة المقطع هنا إذا كان التضمين مسموحًا. تنزيل الفيديو أو الصوت من YouTube غير متاح عبر هذا المشغل.'}
 function refresh(){let d=today();$('date').textContent=d;let a=entries().filter(x=>x.from<=d&&x.to>=d).sort((x,y)=>y.from.localeCompare(x.from))[0];if(a)load(a.media,a.title);$('count').textContent='المقاطع المجدولة في هذا الجهاز: '+entries().length}
 $('toggle').onclick=()=>v.paused?v.play().catch(()=>$('notice').textContent='تعذر تشغيل الملف'):v.pause();
 v.onplay=()=>$('toggle').textContent='❚❚ إيقاف';v.onpause=()=>$('toggle').textContent='▶ تشغيل';
@@ -281,4 +166,4 @@ $('form').onsubmit=e=>{e.preventDefault();let u;try{u=new URL($('media').value);
 $('clear').onclick=()=>{if(confirm('مسح الجدولة المحلية؟')){localStorage.removeItem(key);v.removeAttribute('src');v.load();$('featured').textContent='لم يُضف مقطع اليوم بعد.';refresh()}};refresh();
 
 window.rajaLoadMedia=load;window.rajaOpenYoutube=openYouTube;window.rajaYoutubeId=youtubeId;
-</script><script src="/auth-client.js" defer></script><script src="/library.js" defer></script><script src="/format-picker.js" defer></script><script src="/app-shell.js" defer></script><script src="/organizer.js" defer></script></body></html>
+</script><script src="/auth-client.js" defer></script><script src="/library.js" defer></script><script src="/format-picker.js" defer></script><script src="/app-shell.js" defer></script><script src="/organizer.js" defer></script><script src="/lesson-core.js" defer></script><script src="/lessons.js" defer></script><script src="/recorder.js" defer></script></body></html>

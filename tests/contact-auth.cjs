@@ -1,0 +1,42 @@
+const assert=require('node:assert/strict');
+const {DatabaseSync}=require('node:sqlite');
+const fs=require('node:fs');
+(async()=>{
+ const {normalizeContact,contactMethods}=await import('../functions/_lib/contact-auth.js');
+ const {configured,googleConfigured,currentUser}=await import('../functions/_lib/google-auth.js');
+ const {onRequestPost:send}=await import('../functions/api/auth/send-code.js');
+ const {onRequestPost:check}=await import('../functions/api/auth/check-code.js');
+ const db=new DatabaseSync(':memory:');db.exec(fs.readFileSync(require.resolve('../migrations/0002-contact-auth.sql'),'utf8'));
+ const binding={prepare(sql){return {bind(...values){return {async first(){return db.prepare(sql).get(...values)||null},async run(){return db.prepare(sql).run(...values)}}}}}};
+ const env={RAJA_DB:binding,TWILIO_ACCOUNT_SID:'AC'+'a'.repeat(32),TWILIO_AUTH_TOKEN:'test-only-not-a-real-secret',TWILIO_VERIFY_SERVICE_SID:'VA'+'b'.repeat(32),RAJA_SESSION_SECRET:'test-only-session-secret-'.repeat(3),RAJA_EMAIL_LOGIN:'true',RAJA_SMS_LOGIN:'true'};
+ assert.equal(normalizeContact('sms','٠٥٥١٢٣٤٥٦٧'),'+966551234567');assert.equal(normalizeContact('sms','00966551234567'),'+966551234567');assert.equal(normalizeContact('sms','+15551234567'),null);assert.equal(normalizeContact('email',' USER@EXAMPLE.COM '),'user@example.com');assert.equal(normalizeContact('email','bad'),null);
+ assert.equal(configured(env),true);assert.equal(googleConfigured(env),false);assert.equal(configured({}),false);assert.deepEqual(contactMethods({}),{email:false,sms:false});
+ let providerCalls=0;
+ global.fetch=async(url,options)=>{
+  providerCalls++;assert.ok(String(url).startsWith('https://verify.twilio.com/'));
+  const input=new URLSearchParams(options.body);
+  const approving=String(url).endsWith('/VerificationCheck');
+  return Response.json({status:approving?(input.get('Code')==='123456'?'approved':'pending'):'pending'});
+ };
+ const request=(body,cookie='',origin='https://raja.athat.app')=>new Request('https://raja.athat.app/api/auth/test',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.1',Cookie:cookie},body:JSON.stringify(body)});
+ let r=await send({request:request({channel:'email',identity:'user@example.com'},'','https://evil.example'),env});assert.equal(r.status,403);assert.equal(providerCalls,0);
+ r=await send({request:request({channel:'email',identity:'user@example.com'}),env:{}});assert.equal(r.status,503);assert.equal(providerCalls,0);
+ r=await check({request:request({channel:'email',identity:'user@example.com',code:'123456'}),env});assert.equal(r.status,400);assert.equal(providerCalls,0);
+ r=await send({request:request({channel:'email',identity:'user@example.com'}),env});assert.equal(r.status,200);
+ const challenge=r.headers.get('set-cookie').split(';')[0];assert.match(r.headers.get('set-cookie'),/HttpOnly; Secure; SameSite=Lax/);
+ r=await check({request:request({channel:'email',identity:'other@example.com',code:'123456'},challenge),env});assert.equal(r.status,400);assert.equal(providerCalls,1);
+ r=await check({request:request({channel:'email',identity:'user@example.com',code:'000000'},challenge),env});assert.equal(r.status,400);assert.ok(!r.headers.get('set-cookie'));
+ r=await check({request:request({channel:'email',identity:'user@example.com',code:'123456'},challenge),env});assert.equal(r.status,200);
+ const session=r.headers.getSetCookie().find(c=>c.startsWith('raja_session=')).split(';')[0];
+ const user=await currentUser(new Request('https://raja.athat.app',{headers:{Cookie:session}}),env);assert.equal(user.email,'user@example.com');assert.ok(user.id.startsWith('contact-'));
+ assert.equal(await currentUser(new Request('https://raja.athat.app',{headers:{Cookie:session+'x'}}),env),null);
+ for(let i=0;i<2;i++){r=await send({request:request({channel:'email',identity:'user@example.com'}),env});assert.equal(r.status,200)}
+ const before=providerCalls;r=await send({request:request({channel:'email',identity:'user@example.com'}),env});assert.equal(r.status,429);assert.equal(providerCalls,before);
+ assert.equal(db.prepare('SELECT key FROM raja_auth_limits WHERE key LIKE ?').all('%user@example.com%').length,0);
+ r=await send({request:request({channel:'sms',identity:'0551234567'}),env});assert.equal(r.status,200);
+ const phoneChallenge=r.headers.get('set-cookie').split(';')[0];
+ r=await check({request:request({channel:'sms',identity:'0551234567',code:'123456'},phoneChallenge),env});assert.equal(r.status,200);
+ const phoneSession=r.headers.getSetCookie().find(c=>c.startsWith('raja_session=')).split(';')[0];
+ const phoneUser=await currentUser(new Request('https://raja.athat.app',{headers:{Cookie:phoneSession}}),env);assert.equal(phoneUser.phone,'+966551234567');assert.equal(phoneUser.email,'');
+ db.close();console.log('PASS contact normalization, unavailable-provider response, CSRF, browser challenge, wrong code, signed email/phone sessions, tampering, atomic rate limits, hashed counters');
+})().catch(e=>{console.error(e);process.exitCode=1});

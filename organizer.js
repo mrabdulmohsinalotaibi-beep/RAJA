@@ -9,7 +9,7 @@ let currentVideo=null,reminderTimer=null;
 const validId=id=>/^[A-Za-z0-9_-]{11}$/.test(id||'');
 const uid=()=>crypto.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 const empty=()=>({favorites:[],playlists:[],clips:[]});
-function notice(text,bad=false){const n=$('organizerStatus');n.textContent=text;n.style.color=bad?'#ffc4c4':'#bce2cc'}
+function notice(text,bad=false){const n=$('organizerStatus');n.textContent=text;n.style.color=bad?'#9c363d':'#31634d'}
 function currentId(){return window.rajaYoutubeId?.($('url')?.value.trim()||'')||currentVideo}
 function seconds(text) {
  const s=String(text||'').trim();
@@ -222,6 +222,7 @@ function addRow(container,title,subtitle,onPlay,onRemove){
  item.append(description,actions);container.append(item);
 }
 function play(id,start=0,end=0){
+ window.dispatchEvent(new Event('raja-other-playback'));
  currentVideo=id;
  window.rajaSwitchTab?.('search');
  $('playerDetails').open=true;

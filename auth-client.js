@@ -1,53 +1,62 @@
-/* RAJA Google OAuth interface. It never receives Google passwords, refresh tokens or YouTube cookies. */
-(() => {
-  'use strict';
-  const $=id=>document.getElementById(id);
-  const status=$('rajaAuthStatus'),gate=$('rajaAuthGate'),account=$('rajaAccount');
-  const login=$('rajaGoogleLogin'),logout=$('rajaLogout');
-  const info=$('rajaAuthInfo');
-  let state={configured:false,user:null};
-  const ready=async()=>{
-    try{
-      const r=await fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'});
-      if(!r.ok)throw Error('server_error');
-      const json=await r.json();
-      state={configured:json.configured===true,user:json.user||null};
-    }catch{
-      state={configured:true,user:null,error:'auth_service_unavailable'};
-      document.documentElement.classList.add('raja-auth-required');
-      gate.hidden=false;
-      account.hidden=true;
-      status.textContent='تعذر التحقق من حالة تسجيل Google.';
-      info.textContent='خدمة تسجيل الدخول غير متاحة الآن؛ حاول تحديث الصفحة لاحقًا.';
-      login.href='/api/auth/login';
-      return state;
-    }
-    document.documentElement.classList.toggle('raja-auth-required',state.configured&&!state.user);
-    gate.hidden=!(state.configured&&!state.user);
-    if(state.configured && state.user){
-      account.hidden=false;
-      $('rajaAccountName').textContent=state.user.name||state.user.email;
-      $('rajaAccountEmail').textContent=state.user.email;
-      status.textContent='حساب Google متصل';
-    } else if(state.configured){
-      account.hidden=true;
-      status.textContent='تسجيل الدخول مطلوب';
-      info.textContent='سجّل الدخول بحساب Google الخاص بك للوصول إلى خدمات رَجْع. لا نطلب كلمة مرور Google أو أذونات YouTube.';
-    } else {
-      account.hidden=true;
-      status.textContent='الدخول التجريبي مفتوح';
-      info.textContent='لم تُفعّل خدمة تسجيل Google بعد. ستظهر شاشة الدخول عند تهيئة إعدادات Google OAuth.';
-    }
-    login.href='/api/auth/login';
-    return state;
-  };
-  window.rajaAuthReady=ready();
-  window.rajaAuthState=()=>state;
-  logout.addEventListener('click',async()=>{
-    logout.disabled=true;
-    try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});}
-    catch{}
-    // Reload to ensure the next user gets a distinct local IndexedDB namespace.
-    location.replace('/');
+/* Contact verification and Google sign-in. Provider secrets never reach this client. */
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+let state={configured:false,user:null,methods:{google:false,email:false,sms:false}},channel='email',checking=false;
+const gate=$('rajaAuthGate');
+gate.className='card';$('contactAuth').after(gate);
+function status(message,bad=false){$('contactAuthStatus').textContent=message;$('contactAuthStatus').style.color=bad?'#9c363d':'#31634d'}
+function reset(){
+ checking=false;$('contactCodeLabel').hidden=true;$('contactAuthCode').required=false;
+ $('contactAuthIdentity').readOnly=false;$('contactAuthCode').value='';$('contactAuthSubmit').textContent='متابعة';$('contactAuthChange').hidden=true;
+}
+function method(value){
+ channel=value;reset();
+ const phone=channel==='sms';$('contactAuthLabel').textContent=phone?'رقم الجوال':'البريد الإلكتروني';
+ const input=$('contactAuthIdentity');input.type=phone?'tel':'email';input.autocomplete=phone?'tel':'email';input.placeholder=phone?'05XXXXXXXX':'name@example.com';input.value='';
+ for(const b of document.querySelectorAll('[data-auth-channel]'))b.setAttribute('aria-pressed',String(b.dataset.authChannel===channel));
+ status(state.methods[channel]?'':'الدخول '+(phone?'بالجوال':'بالبريد')+' غير مفعّل بعد؛ يلزم ربط مزود التحقق.');
+}
+for(const button of document.querySelectorAll('[data-auth-channel]'))button.onclick=()=>method(button.dataset.authChannel);
+$('contactAuthChange').onclick=()=>{reset();status('يمكنك تعديل بياناتك ثم طلب رمز جديد.')};
+const ready=async()=>{
+ try{
+  const response=await fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'});if(!response.ok)throw Error();
+  const data=await response.json();
+  state={configured:data.configured===true,user:data.user||null,methods:data.methods||{google:data.configured===true,email:false,sms:false}};
+ }catch{
+  state={configured:true,user:null,methods:{google:false,email:false,sms:false},error:true};
+ }
+ $('rajaAccount').hidden=!state.user;$('contactAuth').hidden=!!state.user;gate.hidden=!state.methods.google||!!state.user;
+ if(state.user){
+  $('rajaAccountName').textContent=state.user.name||'حسابك في رَجْع';$('rajaAccountEmail').textContent=state.user.email||state.user.phone||'';
+  $('rajaAuthStatus').textContent='تم تسجيل الدخول';$('rajaAuthInfo').textContent='مكتبتك الشخصية منفصلة عن الحسابات الأخرى على الجهاز.';
+ }else{
+  $('rajaAuthStatus').textContent=state.error?'تعذر التحقق من خدمة الدخول':state.configured?'سجل الدخول إلى حسابك':'المكتبة المحلية متاحة';
+  $('rajaAuthInfo').textContent=state.configured?'تحقق من بريدك أو جوالك للوصول إلى مكتبتك.':'يمكنك استخدام مكتبة الجهاز الآن. الدخول بالبريد والجوال يحتاج تفعيل مزود التحقق.';
+  if(state.configured){window.rajaSwitchTab?.('settings')}
+ }
+ document.documentElement.classList.toggle('raja-auth-required',state.configured&&!state.user);
+ method(channel);return state;
+};
+window.rajaAuthReady=ready();window.rajaAuthState=()=>state;
+$('contactAuthForm').onsubmit=async e=>{
+ e.preventDefault();if(!state.methods[channel])return status('طريقة الدخول هذه غير مفعّلة حاليًا. يلزم ربط مزود التحقق.',true);
+ const submit=$('contactAuthSubmit');submit.disabled=true;
+ try{
+  const payload={channel,identity:$('contactAuthIdentity').value.trim()};if(checking)payload.code=$('contactAuthCode').value.trim();
+  const response=await fetch('/api/auth/'+(checking?'check-code':'send-code'),{
+   method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
   });
+  const result=await response.json();if(!response.ok||!result.ok)throw Error(result.message||'تعذرت عملية الدخول.');
+  if(checking){location.replace('/');return}
+  checking=true;$('contactCodeLabel').hidden=false;$('contactAuthCode').required=true;$('contactAuthIdentity').readOnly=true;
+  submit.textContent='تحقق وادخل';$('contactAuthChange').hidden=false;status(result.message||'أُرسل رمز التحقق.');$('contactAuthCode').focus();
+ }catch(error){status(error.message||'تعذر الاتصال بخدمة الدخول.',true)}finally{submit.disabled=false}
+};
+$('rajaLogout').onclick=async()=>{
+ const b=$('rajaLogout');b.disabled=true;
+ try{const r=await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});if(!r.ok)throw Error();location.replace('/')}
+ catch{$('rajaAuthInfo').textContent='تعذر تسجيل الخروج. أعد المحاولة.';b.disabled=false}
+};
 })();

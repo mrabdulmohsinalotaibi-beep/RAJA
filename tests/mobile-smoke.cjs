@@ -63,6 +63,7 @@ async function main() {
   await page.goto(BASE, {waitUntil:'domcontentloaded',timeout:40000});
   await page.waitForFunction(() => document.querySelector('#check')?.getAttribute('aria-label')==='عرض صيغ الفيديو والصوت',{timeout:20000});
   assert.equal(await page.locator('[data-tab-button]').count(),5);
+  if(await page.locator('#recorderMenu').count())await page.locator('#recorderMenu').click();
   const overflow=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
   assert.ok(overflow.width<=overflow.viewport+2,'horizontal overflow: '+JSON.stringify(overflow));
   for(const tab of ['files','downloads','organizer','settings','search']){
@@ -74,6 +75,7 @@ async function main() {
   console.log('TEST: Favorites, playlists and time-clipped YouTube segment');
   await page.locator('#url').fill(EXAMPLE);
   await page.locator('[data-tab-button="organizer"]').click();
+  if(await page.locator('#youtubeOrganizer').count())await page.locator('#youtubeOrganizer > summary').click();
   await page.locator('#organizerTitle').fill('مقطع مفضل');
   await page.locator('#organizerFavoriteAdd').click();
   assert.match(await page.locator('#organizerFavorites').innerText(),/مقطع مفضل/);

@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
-const say = (s, bad=false) => { $('localStatus').textContent=s; $('localStatus').style.color=bad?'#ffc3ce':'#c8e8da'; };
+const say = (s, bad=false) => { $('localStatus').textContent=s; $('localStatus').style.color=bad?'#9c363d':'#31634d'; };
 const fmt = n => n > 1048576 ? (n/1048576).toFixed(1)+' MB' : (n/1024).toFixed(0)+' KB';
 const MAX = 400*1048576;
 let dbOpen, previewURL = '';
@@ -67,6 +67,7 @@ async function importFiles(files){
     say(count?'تم حفظ '+count+' من الملفات داخل مكتبتك المحلية دون رفعها إلى أي خادم.':'لم يتم اختيار ملفات صوت أو فيديو صالحة.');
   }catch(e){say(e.name==='QuotaExceededError'?'لا توجد مساحة تخزين كافية للموقع على جهازك.':(e.message||'تعذر الحفظ'),true);}
   await refresh();
+  window.dispatchEvent(new Event('raja-library-change'));
 }
 function button(label,callback,danger=false){
   const b=document.createElement('button');b.type='button';b.className='lib-btn'+(danger?' danger':'');b.textContent=label;
@@ -74,6 +75,7 @@ function button(label,callback,danger=false){
   return b;
 }
 async function showItem(item){
+  if(window.rajaLessons){await window.rajaLessons.playLibraryItem(item);return}
   if(item.type==='youtube'){
     window.rajaShowPlayer?.();
     window.rajaOpenYoutube(item.videoId);
@@ -112,7 +114,7 @@ async function refresh(){
     const actions=document.createElement('div');actions.className='line';
     actions.append(button(item.type==='youtube'?'مشاهدة':'تشغيل',()=>showItem(item)));
     if(item.type==='file')actions.append(button('حفظ في الملفات',()=>exportItem(item)));
-    actions.append(button('حذف',async()=>{if(confirm('هل تريد حذف هذا العنصر من مكتبة الجهاز؟')){await remove(item.id);await refresh();say('تم الحذف من هذا الجهاز.');}},true));
+    actions.append(button('حذف',async()=>{if(confirm('هل تريد حذف هذا العنصر من مكتبة الجهاز؟')){await remove(item.id);await refresh();window.dispatchEvent(new Event('raja-library-change'));say('تم الحذف من هذا الجهاز.');}},true));
     row.append(copy,actions);root.append(row);
   }
   if(navigator.storage?.estimate) {
@@ -186,6 +188,7 @@ function setProgress(stage, bytes=0, total=0){
   }
 }
 
+window.rajaLibrary={items:()=>read('items'),getBlob:async id=>(await read('blobs',id))?.blob,importFiles};
 window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality}) {
   if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)||!['mp4','mp3'].includes(format)||!['audio','video'].includes(kind)||!/^\d{2,4}$/.test(String(quality))) {
     say('خيارات الحفظ غير صالحة.',true);
@@ -241,6 +244,7 @@ window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality})
     if(!blob.size)throw Error('لم تصل بيانات الفيديو.');
     await saveFile(new File([blob],filename,{type:mime}));
     await refresh();
+    window.dispatchEvent(new Event('raja-library-change'));
     setProgress('done');
     announce('تم تنزيل '+filename+' وحفظه بنجاح داخل «ملفاتي» على هذا الجهاز.');
     return true;
