@@ -1,6 +1,6 @@
-import {configured, cookie, STATE_COOKIE, GOOGLE_CALLBACK, randomToken, seal, json} from '../../_lib/google-auth.js';
+import {googleConfigured, cookie, STATE_COOKIE, GOOGLE_CALLBACK, randomToken, seal, json} from '../../_lib/google-auth.js';
 export async function onRequestGet({env}) {
-  if (!configured(env)) return json({ok:false,error:'google_oauth_not_configured',message:'لم يتم إعداد Google OAuth بعد.'},503);
+  if (!googleConfigured(env)) return json({ok:false,error:'google_oauth_not_configured',message:'لم يتم إعداد Google OAuth بعد.'},503);
   const state=randomToken(), nonce=randomToken();
   const now=Math.floor(Date.now()/1000);
   const session=await seal({state,nonce,iat:now,exp:now+600},env.RAJA_SESSION_SECRET);

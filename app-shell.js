@@ -25,6 +25,9 @@
   function switchTab(name) {
     const tab = PANELS.includes(name) ? name : 'search';
     currentTab = tab;
+    $('recorderScreen').hidden=true;$('managementScreen').hidden=false;
+    document.querySelector('main').classList.add('is-managing');
+    $('recorderMenu').hidden=true;$('recorderBack').hidden=false;
     for (const node of document.querySelectorAll('[data-tab-panel]')) node.hidden = node.dataset.tabPanel !== tab;
     for (const button of document.querySelectorAll('[data-tab-button]')) {
       const on = button.dataset.tabButton === tab;
@@ -32,7 +35,7 @@
       button.setAttribute('aria-current', on ? 'page' : 'false');
     }
     if (tab === 'downloads') drawHistory();
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    $('manageContent').scrollTop=0;
   }
   for (const b of document.querySelectorAll('[data-tab-button]')) b.addEventListener('click', () => switchTab(b.dataset.tabButton));
 
@@ -149,5 +152,8 @@
     $('pasteStatus').textContent = 'تم استلام الرابط المُشارك. اختر الصيغة لتنزيله.';
     setTimeout(() => $('check')?.click(), 250);
   }
-  switchTab('search');
+  if(shared)switchTab('search');else{
+    $('recorderScreen').hidden=false;$('managementScreen').hidden=true;
+    document.querySelector('main').classList.remove('is-managing');
+  }
 })();

@@ -1,9 +1,9 @@
-import {configured, cookie, STATE_COOKIE, SESSION_COOKIE, GOOGLE_CALLBACK, getCookie, expireCookie, unseal, seal, verifyGoogleIdToken} from '../../_lib/google-auth.js';
+import {googleConfigured, cookie, STATE_COOKIE, SESSION_COOKIE, GOOGLE_CALLBACK, getCookie, expireCookie, unseal, seal, verifyGoogleIdToken} from '../../_lib/google-auth.js';
 function failed(message) {
   return new Response('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>تعذر تسجيل الدخول</title><body style="font:18px system-ui;background:#292929;color:white;padding:40px"><h1>تعذر تسجيل الدخول</h1><p>'+message+'</p><a href="/" style="color:#e4b476">العودة إلى رَجْع</a></body></html>',{status:400,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Set-Cookie':expireCookie(STATE_COOKIE)}});
 }
 export async function onRequestGet({request,env}) {
-  if(!configured(env))return failed('خدمة تسجيل Google غير مفعّلة.');
+  if(!googleConfigured(env))return failed('خدمة تسجيل Google غير مفعّلة.');
   const url=new URL(request.url);
   const state=url.searchParams.get('state')||'';
   const code=url.searchParams.get('code')||'';

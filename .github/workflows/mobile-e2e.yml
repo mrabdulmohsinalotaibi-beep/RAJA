@@ -7,11 +7,20 @@ on:
       - 'format-picker.js'
       - 'app-shell.js'
       - 'organizer.js'
+      - 'lessons.js'
+      - 'lesson-core.js'
+      - 'recorder.js'
+      - 'recorder.css'
+      - 'auth-client.js'
+      - 'functions/_lib/**'
+      - 'functions/api/auth/**'
       - 'functions/api/organizer.js'
       - 'library.js'
       - 'sw.js'
       - 'tests/**'
       - '.github/workflows/mobile-e2e.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 concurrency:
   group: raja-mobile-ci-main
@@ -29,6 +38,8 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
+      - name: Verify daily lessons and mobile playback locally
+        run: node tests/lesson-core.cjs && node tests/lesson-player.cjs && node tests/recorder-shell.cjs && node tests/contact-auth.cjs && node tests/lessons-e2e.cjs
       - name: Verify live RAJA mobile UI with mocked media endpoints
         env:
           RAJA_URL: https://raja.athat.app/

@@ -4,5 +4,6 @@ export async function onRequestPost({request}) {
   const response=json({ok:true});
   response.headers.append('Set-Cookie',expireCookie(SESSION_COOKIE));
   response.headers.append('Set-Cookie',expireCookie(STATE_COOKIE));
+  response.headers.append('Set-Cookie',expireCookie('raja_contact_challenge'));
   return response;
 }

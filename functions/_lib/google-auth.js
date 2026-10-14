@@ -1,3 +1,4 @@
+import {contactMethods} from './auth-config.js';
 // Google OpenID Connect utilities for RAJA Cloudflare Pages Functions.
 // Only Google email/profile/openid scopes; never request YouTube account access.
 const encoder = new TextEncoder();
@@ -6,10 +7,11 @@ export const GOOGLE_CALLBACK = 'https://raja.athat.app/api/auth/callback';
 export const SESSION_COOKIE = 'raja_session';
 export const STATE_COOKIE = 'raja_oauth_state';
 
-export const configured = env => Boolean(
+export const googleConfigured = env => Boolean(
   env?.GOOGLE_CLIENT_ID && env?.GOOGLE_CLIENT_SECRET && env?.RAJA_SESSION_SECRET &&
   String(env.RAJA_SESSION_SECRET).length >= 32
 );
+export const configured = env => googleConfigured(env)||Object.values(contactMethods(env)).some(Boolean);
 export const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status, headers: {
     'Content-Type': 'application/json; charset=utf-8',
@@ -62,15 +64,16 @@ export async function currentUser(request, env) {
   if (!configured(env)) return null;
   const value = await unseal(getCookie(request, SESSION_COOKIE), env.RAJA_SESSION_SECRET);
   const now = Math.floor(Date.now() / 1000);
-  if (!value || value.iss !== 'raja-google' || !value.sub || !value.email ||
+  if (!value || !['raja-google','raja-contact'].includes(value.iss) || !value.sub ||
+      (value.iss==='raja-google'&&!value.email) || (value.iss==='raja-contact'&&!value.email&&!value.phone) ||
       !Number.isInteger(value.iat) || !Number.isInteger(value.exp) ||
       value.iat > now + 30 || value.exp < now || value.exp > now + 8 * 86400) return null;
-  return { id: String(value.sub), email: String(value.email), name: String(value.name || '') };
+  return { id: String(value.sub), email: String(value.email||''), phone: String(value.phone||''), name: String(value.name || '') };
 }
 export async function requireUser(request, env) {
   if (!configured(env)) return null; // Preserve the existing public site until OAuth credentials are set.
   const user = await currentUser(request, env);
-  return user ? null : json({ ok: false, error: 'google_signin_required', message: 'سجل الدخول بحساب Google الخاص بك أولًا.' }, 401);
+  return user ? null : json({ ok: false, error: 'google_signin_required', message: 'سجل الدخول إلى حسابك أولًا.' }, 401);
 }
 export function userOriginAllowed(request) {
   const origin = request.headers.get('Origin');
