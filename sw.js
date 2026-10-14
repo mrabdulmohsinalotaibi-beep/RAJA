@@ -1,6 +1,6 @@
 /* RAJA app shell only. User media and API streaming are never cached by service worker. */
-const CACHE='raja-shell-v10';
-const SHELL=['/','/index.html','/manifest.webmanifest','/icon.svg','/library.js','/format-picker.js','/app-shell.js','/auth-client.js','/organizer.js','/lesson-core.js','/lessons.js','/recorder.js','/recorder.css'];
+const CACHE='raja-shell-v11';
+const SHELL=['/','/index.html','/manifest.webmanifest?v=11','/icon.svg','/library.js?v=11','/format-picker.js?v=11','/app-shell.js?v=11','/auth-client.js?v=11','/organizer.js?v=11','/lesson-core.js?v=11','/lessons.js?v=11','/recorder.js?v=11','/recorder.css?v=11'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
 });
@@ -11,8 +11,8 @@ self.addEventListener('fetch',event=>{
   const request=event.request;
   const url=new URL(request.url);
   if(url.origin!==self.location.origin||request.method!=='GET'||url.pathname.startsWith('/api/'))return;
-  if(!SHELL.includes(url.pathname))return;
-  event.respondWith(fetch(request).then(response=>{
+  if(!SHELL.some(path=>new URL(path,self.location.origin).pathname===url.pathname))return;
+  event.respondWith(fetch(request,{cache:'no-cache'}).then(response=>{
     if(response.ok&&response.type==='basic'){
       const clone=response.clone();
       event.waitUntil(caches.open(CACHE).then(cache=>cache.put(request,clone)));
