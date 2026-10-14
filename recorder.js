@@ -22,7 +22,7 @@ function refresh(){
  const state=window.rajaLessons?.state()||{name:'كل صوتٍ له رَجْع',title:'ابدأ رحلة الاستماع',index:0,count:0,minutes:30,start:'05:00',position:0,duration:0,elapsed:0,playing:false,picture:false,active:false,done:false};
  if(state){
   $('recorderList').textContent=state.name;$('recorderTitle').textContent=state.title;
-  $('recorderSubtitle').textContent=state.done?'اكتملت الحصة · يمكنك إعادتها':state.count?'استماع متسلسل · حصة اليوم':'أضف دروسك من شاشة القوائم';
+  $('recorderSubtitle').textContent=state.done?'اكتملت الحصة · يمكنك إعادتها':state.resumable?'جاهز للمتابعة من '+format(state.position):state.count?'استماع متسلسل · حصة اليوم':'أضف دروسك من شاشة القوائم';
   $('recorderIndex').textContent=state.count?num.format(state.index)+' من '+num.format(state.count):'مكتبتك اليومية';
   $('recorderDaily').textContent=num.format(state.minutes)+' دقيقة';
   const [h,m]=state.start.split(':').map(Number);$('recorderDayStart').textContent=num.format(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' مساءً':' صباحًا');
