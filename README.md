@@ -111,3 +111,13 @@
 - تظل مكتبة الضيف القديمة متاحة دون تسجيل دخول ولا تُدمج تلقائيًا مع حساب جديد، لحماية الأجهزة المشتركة. لكل حساب مساحة ملفات وقوائم مستقلة؛ بعد الخروج يمكن الوصول إلى مكتبة الجهاز الأصلية مجددًا.
 
 المسارات: `/api/auth/register` و`/api/auth/password-login` و`/api/auth/reset-password` و`/api/auth/logout`. اختبار `node tests/password-auth.cjs` يتحقق من دورة الحساب كاملة باستخدام SQLite محليًا. اختبار `node tests/password-ui-e2e.cjs` يتحقق من واجهة التسجيل والدخول والاستعادة عبر استجابات محاكاة. إصدار ملفات التطبيق v13.
+
+## Account cloud synchronization (v15)
+
+Signed-in users now synchronize media files, daily lesson lists, item order and listening progress. Existing account-local files upload automatically while the page is open. A private R2 binding `RAJA_MEDIA` stores originals; D1 `RAJA_DB` stores owner-scoped metadata, resumable upload parts and versioned lesson snapshots. Apply `migrations/0004-cloud-sync.sql` before deployment. The bucket has no public website or public object URLs. Every media read (including byte ranges) checks the session and owner.
+
+Uploads use bounded 8 MiB multipart chunks, resume acknowledged parts after interrupted connections, and become visible to other devices only after completion. The initial account quota is 1 GiB, each file is limited to 400 MiB, and the application allocation is capped at 5 GiB. Limits reserve bytes atomically across concurrent uploads. Quota errors preserve the local file and display a pending/error state; no paid plan upgrade is enabled by this change.
+
+New devices see cloud files immediately and stream them with authenticated range requests. “حفظ دون إنترنت” downloads a persistent local copy. Guest libraries remain private to the device until the signed-in user explicitly chooses “إضافة مكتبة الضيف إلى حسابي”. File deletions are account-wide and retain metadata tombstones so stale devices cannot re-upload deleted files. Three-way list merging preserves offline additions and the furthest daily listening progress; simultaneous structural edits keep a named copy rather than silently overwriting either list. Local originals remain usable when offline; sync retries on reconnect, foregrounding, edits, and a 45-second foreground poll. Browsers may pause uploads when the app is closed or suspended.
+
+Validation includes real SQLite integration with a multipart R2 test binding, resumable chunks, account isolation, CSRF, size limits, byte ranges, atomic quota reservation, three-way merge regressions and two independent browser contexts for online/offline file and playlist synchronization.

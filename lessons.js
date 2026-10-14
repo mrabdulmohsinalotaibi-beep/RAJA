@@ -8,9 +8,9 @@ let generation=0,transition=false,timer=null,lastSave=0;
 const uid=()=>crypto.randomUUID();
 const fmt=n=>{n=Math.max(0,Math.floor(n||0));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
 const tell=(text,bad=false)=>{const el=$('lessonStatus');el.textContent=text;el.style.color=bad?'#9c363d':'#31634d'};
-function save(){
+function save(notify=true){
  if(!scope)return false;
- try{localStorage.setItem(scope,JSON.stringify(lists));return true}
+ try{localStorage.setItem(scope,JSON.stringify(lists));if(notify)window.dispatchEvent(new Event('raja-lessons-change'));return true}
  catch{tell('تعذر حفظ قوائم الدروس. تحقق من المساحة وإعدادات المتصفح.',true);return false}
 }
 function button(text,fn){
@@ -202,10 +202,11 @@ async function openItem(item,offset){
  }else{
   let src=item.url,mime='';
   if(item.type==='file'){
-   const blob=await window.rajaLibrary.getBlob(item.libraryId);
+   const source=window.rajaLibrary.source?await window.rajaLibrary.source(item.libraryId):{blob:await window.rajaLibrary.getBlob(item.libraryId)};
    if(token!==generation)return;
-   if(!blob)throw Error('ملف الدرس غير موجود على هذا الجهاز.');
-   objectURL=URL.createObjectURL(blob);src=objectURL;mime=blob.type;
+   if(source.blob){objectURL=URL.createObjectURL(source.blob);src=objectURL;mime=source.mime||source.blob.type}
+   else if(source.url){src=source.url;mime=source.mime||''}
+   else throw Error('ملف الدرس غير موجود على هذا الجهاز.');
   }
   if(token!==generation)return;
   const isAudio=(item.mime||mime).startsWith('audio/')||[item.title,item.url].some(value=>/\.(mp3|m4a|aac|ogg|opus|wav|flac)([?#]|$)/i.test(String(value||'').trim()));
@@ -244,6 +245,14 @@ async function start(list){
 }
 
 window.rajaLessons={
+ snapshot:()=>JSON.parse(JSON.stringify(lists)),
+ applyCloud(next){
+  if(active){const incoming=next.find(l=>l.id===active.list.id),shape=l=>JSON.stringify([l.name,l.minutes,l.start,l.items]);
+   if(!incoming||shape(incoming)!==shape(active.list))stop();
+   else{Object.assign(active.list,incoming);active.day=active.list.day;next=next.map(l=>l.id===active.list.id?active.list:l)}
+  }
+  lists=next;save(false);render();
+ },
  state(){
   const list=active?.list||lists.find(l=>l.id===selectedId)||lists[0];
   if(!list)return null;
@@ -292,6 +301,7 @@ $('lessonCreate').onsubmit=e=>{
 window.addEventListener('raja-other-playback',()=>stop());
 $('player').addEventListener('play',()=>{if(active)stop()});
 window.addEventListener('raja-library-change',()=>void reloadLibrary());
+window.addEventListener('raja-cloud-library-applied',()=>void reloadLibrary());
 window.addEventListener('pagehide',()=>{tick();save()});
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden&&active?.item.type==='youtube')pause();
@@ -302,7 +312,7 @@ window.addEventListener('storage',e=>{
  if(e.key!==scope)return;
  stop(false);try{lists=JSON.parse(e.newValue||'[]');render();tell('تم تحديث القوائم من نافذة أخرى.')}catch{}
 });
-(async()=>{
+window.rajaLessonsReady=(async()=>{
  const auth=await window.rajaAuthReady;
  if(auth?.configured&&!auth.user?.id&&!auth.guestAllowed)return;
  scope='raja-lessons-v1-'+(auth?.user?.id?auth.user.id:'local');

@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),{merge,equal}=require('../sync-core.js');
+const list={id:'list-12345678',name:'Lessons',minutes:1,start:'05:00',items:[{id:'item-12345678',type:'file',libraryId:'file-12345678',title:'test.mp3'}],cursor:{id:'item-12345678',offset:0},day:{key:'2026-10-14',minutes:1,start:{id:'item-12345678',offset:0},next:{id:'item-12345678',offset:0},furthest:0}};
+const data=l=>({lessons:l,links:[]}),clone=x=>structuredClone(x),base=data([list]);
+let local=clone(base),remote=clone(base);local.lessons[0].day.furthest=10;local.lessons[0].cursor.offset=10;remote.lessons[0].day.furthest=20;remote.lessons[0].cursor.offset=20;
+let r=merge(base,local,remote);assert.equal(r.lessons[0].day.furthest,20);assert.equal(r.lessons[0].cursor.offset,20);
+assert.equal(merge(base,base,data([])).lessons.length,0);assert.equal(merge(base,data([]),base).lessons.length,0);
+local=clone(base);remote=clone(base);local.lessons[0].name='Local edit';remote.lessons[0].name='Remote edit';r=merge(base,local,remote,()=> 'copy-12345678');assert.equal(r.lessons.length,2);assert.ok(r.lessons.some(x=>x.name.startsWith('Local edit')));assert.equal(base.lessons[0].name,'Lessons');
+assert.equal(merge(data([]),data([list]),data([{...list,id:'new-12345678'}])).lessons.length,2);
+remote=clone(base);remote.lessons[0].day.key='2026-10-15';remote.lessons[0].cursor.offset=30;r=merge(base,local,remote);assert.equal(r.lessons[0].name,'Local edit');assert.equal(r.lessons[0].day.key,'2026-10-15');assert.equal(r.lessons[0].cursor.offset,30);
+assert.ok(equal({a:1,b:2},{b:2,a:1}));console.log('PASS three-way merge, offline additions, cross-device deletion, structural conflict copies, monotonic progress and stable equality');
