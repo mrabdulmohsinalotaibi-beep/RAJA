@@ -25,7 +25,7 @@ function refresh(){
   $('recorderSubtitle').textContent=state.done?'اكتملت الحصة · يمكنك إعادتها':state.resumable?'جاهز للمتابعة من '+format(state.position):state.count?'استماع متسلسل · حصة اليوم':'أضف دروسك من شاشة القوائم';
   $('recorderIndex').textContent=state.count?num.format(state.index)+' من '+num.format(state.count):'مكتبتك اليومية';
   $('recorderDaily').textContent=num.format(state.minutes)+' دقيقة';
-  const [h,m]=state.start.split(':').map(Number);$('recorderDayStart').textContent=num.format(h%12||12)+':'+String(m).padStart(2,'0')+(h>=12?' مساءً':' صباحًا');
+  const [h,m]=state.start.split(':').map(Number);$('recorderDayStart').textContent='\u2066'+num.format(h%12||12)+':'+num.format(m).padStart(2,'٠')+'\u2069'+(h>=12?' مساءً':' صباحًا');
   $('recorderElapsed').textContent=format(state.elapsed);$('recorderDuration').textContent=format(state.minutes*60);
   $('recorderSeek').max=Number.isFinite(state.duration)&&state.duration>0?state.duration:1;
   $('recorderSeek').value=state.position;$('recorderSeek').style.setProperty('--progress',Math.min(100,Math.max(0,state.position/Number($('recorderSeek').max)*100))+'%');$('recorderSeek').disabled=!state.active||state.done;
