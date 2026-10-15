@@ -426,7 +426,7 @@ async function openItem(item,offset,playFrom=offset,autoplay=true){
    player.currentTime=Math.min(playFrom,player.duration);active.lastPosition=player.currentTime;transition=false;save(false);
    if(autoplay&&active.wantPlaying!==false)void player.play().catch(()=>tell('اضغط زر التشغيل داخل المشغل؛ المتصفح يحتاج لمسة لبدء الصوت.'));
   };
-  player.ontimeupdate=()=>tick();player.onended=()=>tick(true);
+  player.ontimeupdate=()=>tick();player.onended=()=>{if(player.ended||player.currentTime>=player.duration-.025)tick(true)};
   player.onseeking=player.onseeked=()=>{if(active&&token===generation)active.lastPosition=player.currentTime};
   player.onerror=()=>{if(token===generation)fail(Error('صيغة الملف أو رابط الدرس غير قابل للتشغيل.'))};
   player.onplay=()=>{
@@ -434,7 +434,7 @@ async function openItem(item,offset,playFrom=offset,autoplay=true){
    $('lessonPause').textContent='إيقاف مؤقت';
    if(active?.done)void start(active.list,active.plan?{partIndex:active.partIndex}:{replay:true});else activateAudioSession(true);
   };
-  player.onpause=()=>{if(active&&!player.ended&&player.currentTime<player.duration-.025)active.wantPlaying=false;$('lessonPause').textContent='متابعة';tick();save()};
+  player.onpause=()=>{if(!player.paused)return;if(active&&!player.ended&&player.currentTime<player.duration-.025)active.wantPlaying=false;$('lessonPause').textContent='متابعة';tick();save()};
   player.src=src;player.load();timer=setInterval(()=>tick(),200);
   activateAudioSession();
   installSession(item);
