@@ -317,13 +317,18 @@
       say('أرسل رَجْع رابط الملف المباشر إلى تنزيلات المتصفح.');
     }
   };
-  $('formatPreview').onclick=()=>{
-    if(!current)return;
+  function watchLink(){
+    const data=parse(input.value);
+    if(!data){$('notice').textContent='أدخل رابط يوتيوب أو رابط ملف وسائط مباشر صحيح.';return}
+    // Playback must not wait for extraction or later redirect to a download site.
+    clearTimeout(timer);resetNetwork();current=data;picker.hidden=true;
     window.rajaShowPlayer?.();
-    if(current.kind==='youtube')window.rajaOpenYoutube(current.id);
-    else window.rajaLoadMedia(current.url,'وسائط');
-    $('player').scrollIntoView({behavior:'smooth',block:'center'});
-  };
+    if(data.kind==='youtube')window.rajaOpenYoutube(data.id);
+    else window.rajaLoadMedia(data.url,'وسائط');
+    $(data.kind==='youtube'?'youtube':'player').scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  $('formatPreview').onclick=watchLink;
+  $('watchLink').onclick=watchLink;
   $('formatKeep').onclick=async()=>{
     if(!current)return;
     const b=$('formatKeep');
