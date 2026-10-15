@@ -1,3 +1,4 @@
+import {siteSettings} from '../../_lib/site-settings.js';
 import {json,randomToken} from '../../_lib/google-auth.js';
 import {passwordRequest,hashPassword,hashRecovery,accountSession} from '../../_lib/password-auth.js';
 export async function onRequestPost({request,env}){
@@ -5,6 +6,7 @@ export async function onRequestPost({request,env}){
  const name=typeof input.body.name==='string'?input.body.name.trim():'';
  if(!name||name.length>100)return json({ok:false,message:'أدخل اسمك، بحد أقصى 100 حرف.'},400);
  try{
+  if(!(await siteSettings(env)).registration_open)return json({ok:false,message:'التسجيل الجديد مغلق مؤقتًا من إدارة الموقع.'},403);
   const existing=await env.RAJA_DB.prepare('SELECT id FROM raja_accounts WHERE email = ?').bind(input.email).first();
   if(existing)return json({ok:false,message:'تعذر إنشاء الحساب بهذا البريد. إذا كان لك حساب، استخدم تسجيل الدخول أو الاستعادة.'},409);
   const password=await hashPassword(input.body.password,env),recoveryCode=randomToken(24),now=Math.floor(Date.now()/1000);
