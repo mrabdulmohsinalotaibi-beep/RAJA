@@ -182,3 +182,9 @@ The recorder offers 2 total plays, 3 total plays, or continuous part repetition.
 Uploads and saved downloads compare all file bytes using fixed 1 MiB SHA-256 chunks and a versioned root fingerprint (bounded memory). File names and MIME types do not determine matches. Older stored files are fingerprinted lazily when size matches; originals remain intact. A dialog offers skip/add again, optional batch decision, and safe skip on cancel. Imports serialize so simultaneous batches do not race the duplicate check. Fingerprints remain on the device with the existing library.
 
 WebKit native audio checks use an in-memory media-library fixture to isolate audio behavior from the Linux runner storage backend, and log an independent IndexedDB Blob probe. Persistent storage and duplicate choices are exercised by the Chromium suite. Neither engine test represents a physical iOS lock-screen session.
+
+
+### YouTube shortcut links — v26
+The link field accepts yout-ube.com, youtube44.com, ilumu.com and adblockyoutube.com watch/embed/shorts/live links, validates their video identifier, and opens the official youtube-nocookie.com embed directly. The shortcut domains are never visited. The dedicated “تشغيل الرابط داخل رَجْع” action and format preview cancel pending extraction and SS download redirects so playback stays in the app. This uses the same privacy-enhanced player RAJA already used, and is not an ad blocker: YouTube can still serve ads. Mocked browser tests verify routing and cancellation, not real YouTube ad absence or full playback.
+
+References: https://www.yout-ube.com/ (describes its privacy-embed redirect); https://support.google.com/youtube/answer/171780?hl=en (privacy-enhanced embeds may serve non-personalized ads).
