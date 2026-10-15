@@ -427,7 +427,7 @@ async function openItem(item,offset,playFrom=offset,autoplay=true){
   media=isAudio?audio:video;media.hidden=false;
   const player=media;
   player.onloadedmetadata=()=>{
-   if(token!==generation)return;
+   if(token!==generation)return;player.onloadedmetadata=null;
    if(!Number.isFinite(player.duration)||player.duration<=0){fail(Error('اختر ملفًا محدد المدة، وليس بثًا مباشرًا.'));return}
    player.currentTime=Math.min(playFrom,player.duration);active.lastPosition=player.currentTime;transition=false;save(false);
    if(autoplay&&active.wantPlaying!==false)void playMedia(player).catch(()=>tell('اضغط زر التشغيل داخل المشغل؛ المتصفح يحتاج لمسة لبدء الصوت.'));
@@ -436,6 +436,7 @@ async function openItem(item,offset,playFrom=offset,autoplay=true){
   player.onseeking=player.onseeked=()=>{if(active&&token===generation)active.lastPosition=player.currentTime};
   player.onerror=()=>{if(token===generation)fail(Error('صيغة الملف أو رابط الدرس غير قابل للتشغيل.'))};
   player.onplay=()=>{
+   if(player.paused)return;
    if(active?.pendingPlay&&active.wantPlaying===false){player.pause();return}
    if(active)active.wantPlaying=true;
    $('lessonPause').textContent='إيقاف مؤقت';
