@@ -8,7 +8,7 @@ function wav(seconds){const n=8000*seconds,b=Buffer.alloc(44+n*2);b.write('RIFF'
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/auth/me',r=>r.fulfill({json:{configured:false,user:null}}));
   await page.goto('http://127.0.0.1:8770');await page.locator('#recorderMenu').click();
-  await page.locator('#lessonName').fill('متابعة الدروس');await page.locator('#lessonMinutes').fill('1');await page.locator('#lessonCreate button').click();
+  await page.locator('#lessonName').fill('متابعة الدروس');await page.locator('#lessonMinutes').fill('1');await page.locator('#lessonPartMinutes').fill('0');await page.locator('#lessonCreate button').click();
   await page.locator('.lesson-list input[type=file]').setInputFiles([{name:'01-first.wav',mimeType:'audio/wav',buffer:wav(40)},{name:'02-second.wav',mimeType:'audio/wav',buffer:wav(40)}]);
   await page.locator('.lesson-row').nth(1).waitFor({state:'attached'});await page.getByRole('button',{name:'تشغيل القائمة',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#lessonAudio').currentTime>0);
   async function pauseAt(t){await page.evaluate(t=>{const a=document.querySelector('#lessonAudio');a.currentTime=t;a.pause();a.dispatchEvent(new Event('timeupdate'));a.dispatchEvent(new Event('pause'))},t)}

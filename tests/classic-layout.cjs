@@ -28,7 +28,7 @@ const fs=require('node:fs'),path=require('node:path');
    await page.screenshot({path:'layout-previews/recorder-'+width+'.png'});
   }
   await page.setViewportSize({width:390,height:844});await page.locator('#recorderMenu').click();
-  await page.locator('#lessonName').fill('دروس الفقه');await page.locator('#lessonCreate button').click();
+  await page.locator('#lessonName').fill('دروس الفقه');await page.locator('#lessonPartMinutes').fill('0');await page.locator('#lessonCreate button').click();
   await page.screenshot({path:'layout-previews/library.png'});
   for(const tab of ['organizer','files','search','settings']){
    await page.locator('[data-tab-button="'+tab+'"]').click();

@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),core=require('../lesson-core.js');
+const items=[{id:'a',duration:45},{id:'b',duration:45},{id:'c',duration:45}],p=core.parts(items,1);
+assert.equal(p.total,135);assert.equal(p.count,3);assert.deepEqual(core.partBounds(p,2),{index:2,start:120,end:135,duration:15});
+assert.deepEqual(core.sourceAt(p,60),{id:'b',offset:15});assert.deepEqual(core.sourceAt(p,110),{id:'c',offset:20});
+assert.equal(core.absolute(p,'b',37),82);assert.equal(core.partIndex(p,82),1);assert.equal(core.partIndex(p,60),1);assert.equal(core.partIndex(p,60,0),0);assert.equal(core.partIndex(p,135),2);
+const ten=core.parts(Array.from({length:10},(_,i)=>({id:'file-'+i,duration:3632})),30);assert.equal(ten.count,21);assert.equal(core.partBounds(ten,20).duration,320);assert.deepEqual(core.sourceAt(ten,3600),{id:'file-0',offset:3600});assert.deepEqual(core.sourceAt(ten,5400),{id:'file-1',offset:1768});
+assert.throws(()=>core.parts([{id:'bad',duration:0}],30));assert.throws(()=>core.parts(items,0));
+const exact=core.parts([{id:'a',duration:60},{id:'b',duration:60}],1);assert.equal(exact.count,2);assert.deepEqual(core.sourceAt(exact,60),{id:'b',offset:0});
+const huge=core.parts([{id:'a',duration:360000}],1);assert.equal(huge.count,6000);
+console.log('PASS virtual parts, cross-file offsets, exact boundaries, preferred completed part, ten long files, short final part and large plans');

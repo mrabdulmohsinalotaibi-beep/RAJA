@@ -15,7 +15,7 @@ const nodes=new Map(),handlers={},docHandlers={},storage=new Map(),sessionAction
 const audioSession={set type(value){this.value=value;audioTypes.push(value)},get type(){return this.value}};
 const get=id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)};
 const key='raja-lessons-v1-local';
-storage.set(key,JSON.stringify([{id:'list',name:'Lessons',minutes:1,goalMinutes:1,start:'05:00',items:[
+storage.set(key,JSON.stringify([{id:'list',name:'Lessons',partMinutes:0,minutes:1,goalMinutes:1,start:'05:00',items:[
  {id:'first',type:'file',libraryId:'f1',title:'first.wav'},
  {id:'second',type:'file',libraryId:'f2',title:'second.wav'}
 ]}]));
