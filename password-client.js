@@ -1,4 +1,4 @@
-/* Email + password account flow, matching ATHAT's method with independent RAJA accounts. */
+/* Phone/email + password account flow, matching ATHAT's method with independent RAJA accounts. */
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);let mode='login';
@@ -33,7 +33,7 @@ $('passwordAuthForm').onsubmit=async e=>{
   if(result.recoveryCode){
    $('passwordRecoveryCode').value=result.recoveryCode;$('passwordRecoveryPanel').hidden=false;$('passwordAuthForm').hidden=true;$('passwordModeTabs').hidden=true;
    message(mode==='reset'?'تمت استعادة حسابك وإلغاء الجلسات السابقة. احفظ رمز الاستعادة الجديد.':'أُنشئ حسابك بنجاح. احفظ رمز الاستعادة قبل المتابعة.');
-  }else location.replace('/');
+  }else location.replace(result.redirect==='/admin/'?'/admin/':'/');
  }catch(error){message(error.message||'تعذر الاتصال. حاول لاحقًا.',true)}finally{button.disabled=false}
 };
 $('passwordContinue').onclick=()=>location.replace('/');
