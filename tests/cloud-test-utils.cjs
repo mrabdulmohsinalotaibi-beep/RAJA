@@ -1,7 +1,7 @@
 const fs=require('node:fs'),{DatabaseSync}=require('node:sqlite');
 function setup(){
  const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');
- for(const p of ['0002-contact-auth.sql','0003-password-accounts.sql','0005-site-admin.sql','0006-phone-accounts.sql','0004-cloud-sync.sql'])db.exec(fs.readFileSync(require.resolve('../migrations/'+p),'utf8'));
+ for(const p of ['0002-contact-auth.sql','0003-password-accounts.sql','0005-site-admin.sql','0006-phone-accounts.sql','0007-site-ads.sql','0004-cloud-sync.sql'])db.exec(fs.readFileSync(require.resolve('../migrations/'+p),'utf8'));
  const binding={prepare(sql){let values=[];const stmt={bind(...v){values=v;return stmt},async first(){return db.prepare(sql).get(...values)||null},async all(){return {results:db.prepare(sql).all(...values)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}}}};return stmt}};
  const objects=new Map(),uploads=new Map();
  const bucket={
