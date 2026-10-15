@@ -434,7 +434,7 @@ async function openItem(item,offset,playFrom=offset,autoplay=true){
    $('lessonPause').textContent='إيقاف مؤقت';
    if(active?.done)void start(active.list,active.plan?{partIndex:active.partIndex}:{replay:true});else activateAudioSession(true);
   };
-  player.onpause=()=>{if(active&&!player.ended)active.wantPlaying=false;$('lessonPause').textContent='متابعة';tick();save()};
+  player.onpause=()=>{if(active&&!player.ended&&player.currentTime<player.duration-.025)active.wantPlaying=false;$('lessonPause').textContent='متابعة';tick();save()};
   player.src=src;player.load();timer=setInterval(()=>tick(),200);
   activateAudioSession();
   installSession(item);
