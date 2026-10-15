@@ -55,6 +55,9 @@ jobs:
         env:
           RAJA_URL: https://raja.athat.app/
         run: node tests/mobile-smoke.cjs
+      - name: Verify deployed administration boundaries
+        if: github.ref == 'refs/heads/main'
+        run: node tests/admin-live-smoke.mjs
       - name: Save recorder layout previews
         if: always()
         uses: actions/upload-artifact@v4
