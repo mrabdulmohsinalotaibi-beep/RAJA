@@ -1,3 +1,4 @@
+import {manageAds} from '../../_lib/site-ads.js';
 import {json,randomToken,expireCookie} from '../../_lib/google-auth.js';
 import {hashPassword,verifyPassword,hashRecovery,verifyRecovery,validPassword} from '../../_lib/password-auth.js';
 import {normalizeContact} from '../../_lib/contact-auth.js';
@@ -36,17 +37,18 @@ export async function onRequest({request,env}){
   const path=new URL(request.url).pathname.split('/').filter(Boolean).at(-1),method=request.method;
   if(!['GET','POST'].includes(method))return bad('طريقة الطلب غير مدعومة.',405);
   let body;
-  if(method==='POST'){const p=await adminRequest(request,env);if(p.response)return p.response;body=p.body}
+  if(method==='POST'){const p=await adminRequest(request,env,path==='ads'?180000:4096);if(p.response)return p.response;body=p.body}
   if(['login','activate','recover'].includes(path)&&method==='POST')return await credentials(path,request,env,body);
   const admin=await currentAdmin(request,env);
   if(path==='session'&&method==='GET')return json({ok:true,authenticated:!!admin,admin:admin?publicAdmin(admin):null});
   if(!admin)return bad('سجّل دخول الإدارة أولًا.',401);
   if(path==='logout'&&method==='POST'){await env.RAJA_DB.prepare('DELETE FROM raja_admin_sessions WHERE session_id=? AND admin_id=?').bind(admin.sid,admin.id).run();const r=json({ok:true});r.headers.append('Set-Cookie',expireCookie(ADMIN_COOKIE));return r}
   if(method==='POST'&&!await adminLimit(env,request,admin.id,'mutate'))return bad('طلبات كثيرة. انتظر قليلًا وأعد المحاولة.',429);
+  if(path==='ads')return await manageAds(method,body,env,admin);
   if(path==='overview'&&method==='GET'){
    const counts=await env.RAJA_DB.prepare('SELECT (SELECT COUNT(*) FROM raja_accounts) users,(SELECT COUNT(*) FROM raja_user_controls WHERE suspended=1) suspended,(SELECT COUNT(*) FROM raja_password_sessions WHERE expires_at>?) sessions,(SELECT COUNT(*) FROM raja_admin_accounts WHERE disabled=0) admins').bind(now()).first();
    const recent=await env.RAJA_DB.prepare('SELECT x.id,x.action,x.target,x.created_at,a.name actor FROM raja_admin_audit x LEFT JOIN raja_admin_accounts a ON a.id=x.actor_id ORDER BY x.created_at DESC,x.id DESC LIMIT 12').all();
-   return json({ok:true,counts,recent:recent.results,settings:await siteSettings(env),release:'v29',storage:'device-only'});
+   return json({ok:true,counts,recent:recent.results,settings:await siteSettings(env),release:'v30',storage:'device-only'});
   }
   if(path==='users'&&method==='GET'){
    const u=new URL(request.url),raw=(u.searchParams.get('q')||'').trim().slice(0,100),q=normalizeContact('sms',raw)||raw,page=Math.max(1,Math.min(100000,Number(u.searchParams.get('page'))||1)),pattern='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
