@@ -89,11 +89,11 @@
 <p class="raja-section-intro">اختر قائمتك وكمّل من حيث توقفت.</p>
 <section class="card" id="lessonLibrary">
 <h2>قوائم الاستماع</h2>
-<p class="raja-tip">تنقّل بين المقاطع بحرية. يظهر آخر مقطع وموضع التوقف لكل قائمة، والهدف اليومي اختياري ولا يوقف الصوت.</p><div class="lesson-library-heading"><h3>قوائمك</h3><button type="button" id="lessonNewList" class="org-btn">إضافة قائمة جديدة</button></div><p id="lessonListCount" class="raja-tip"></p><form id="lessonCreate" class="lesson-form" aria-label="إنشاء قائمة دروس جديدة">
+<p class="raja-tip">تنقّل بين المقاطع بحرية. يظهر آخر مقطع وموضع التوقف لكل قائمة، والهدف اليومي اختياري ولا يوقف الصوت.</p><div class="lesson-library-heading"><h3>قوائمك</h3><button type="button" id="lessonNewList" class="org-btn">إضافة قائمة جديدة</button></div><p id="lessonListCount" class="raja-tip"></p><details id="lessonCreatePanel" open><summary>اسم القائمة وإضافة المقاطع</summary><form id="lessonCreate" class="lesson-form" aria-label="إنشاء قائمة دروس جديدة">
 <label>اسم القائمة<input id="lessonName" required maxlength="100" placeholder="مثل: دروس التفسير"></label>
 <label>هدف يومي اختياري (0 = مفتوح)<input id="lessonMinutes" required type="number" min="0" max="720" value="0"></label>
 <input id="lessonStart" type="hidden" value="05:00"><label class="wide">المقاطع (اختياري)<input id="lessonFiles" type="file" accept="audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.mp4,.m4v,.mov,.webm" multiple><small>اختر عدة ملفات؛ تُرتّب تلقائيًا بالأسماء.</small></label>
-<button type="submit">إنشاء القائمة</button></form>
+<button type="submit">إنشاء القائمة</button></form></details>
 <p id="lessonStatus" role="status" aria-live="polite"></p>
 <div id="lessonLists"></div>
 <p class="raja-tip">تبقى القوائم والملفات وتقدم الاستماع على هذا الجهاز فقط حتى لو دخلت بالحساب نفسه من جهاز آخر. الصوت يدعم أزرار شاشة القفل حيث يسمح الجهاز والمتصفح؛ إغلاق التطبيق بالقوة يوقفه. روابط YouTube تعمل في مشغله المرئي ولا تدعم الاستماع بالخلفية هنا.</p>

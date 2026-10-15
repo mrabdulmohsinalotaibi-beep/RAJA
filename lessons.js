@@ -143,6 +143,7 @@ function render(){
   const missing=list.items.filter(item=>item.type==='file'&&!availableIds.has(item.libraryId));
   desc.textContent=list.items.length+' مقاطع · '+(goal(list)?'هدف '+goal(list)+' دقيقة · '+(day.listened>=goal(list)*60?'أكملت هدف اليوم ✓':'استمعت اليوم '+fmt(day.listened)):'استماع مفتوح');
   const where=document.createElement('p');where.className='lesson-where';where.textContent=current?'وصلت إلى المقطع '+(list.items.indexOf(current)+1)+': '+current.title+' · عند '+fmt(saved?.position??list.cursor?.offset):'اختر مقطعًا أو ابدأ الاستماع';
+  if(current){where.textContent='وصلت إلى المقطع '+(list.items.indexOf(current)+1);const title=document.createElement('strong');title.className='lesson-last-title';title.dir='auto';title.textContent=current.title;const at=document.createElement('span');at.textContent='توقفت عند \u2066'+fmt(saved?.position??list.cursor?.offset)+'\u2069';where.append(title,at)}
   box.append(desc,where);
   const controls=document.createElement('div');controls.className='org-actions lesson-card-actions';
   const play=button(saved?'متابعة':'تشغيل القائمة',()=>start(list));play.className+=' lesson-primary';play.disabled=!list.items.length||missing.length===list.items.length;
@@ -201,7 +202,7 @@ function render(){
   list.items.forEach((item,index)=>{
    const row=document.createElement('div');row.className='lesson-row';row.dataset.itemId=item.id;
    const progress=list.progress?.[item.id],isCurrent=current?.id===item.id;row.dataset.progress=isCurrent?'current':progress?.completed?'completed':'pending';
-   const t=document.createElement('strong');t.textContent=(index+1)+'. '+item.title+(item.type==='file'&&!availableIds.has(item.libraryId)?' — غير محفوظ على هذا الجهاز':'');
+   const t=document.createElement('strong');t.dir='auto';t.textContent=(index+1)+'. '+item.title+(item.type==='file'&&!availableIds.has(item.libraryId)?' — غير محفوظ على هذا الجهاز':'');
    const badge=document.createElement('small');badge.className='lesson-track-status';badge.textContent=isCurrent?'◉ وصلت هنا · '+fmt(saved?.position??list.cursor?.offset):progress?.completed?'✓ تم الاستماع':progress?.position?'توقفت عند '+fmt(progress.position):'لم تبدأ بعد';
    const copy=document.createElement('div');copy.className='lesson-track-copy';copy.append(t,badge);
    const actions=document.createElement('div');actions.className='org-actions';
@@ -425,7 +426,7 @@ $('lessonCreate').onsubmit=async e=>{
  const created={id:uid(),name,minutes:minutes||30,goalMinutes:minutes,openListeningVersion:23,start,items:[],cursor:null,day:null};lists.push(created);
  if(!active){selectedId=created.id;try{localStorage.setItem(scope+':selected',selectedId)}catch{}}
  if(save()){
-  const chosen=[...($('lessonFiles')?.files||[])];$('lessonName').value='';render();
+  const chosen=[...($('lessonFiles')?.files||[])];$('lessonName').value='';if($('lessonCreatePanel'))$('lessonCreatePanel').open=false;render();
   if(chosen.length){try{const result=await window.rajaLibrary.importFiles(chosen.slice(0,500).sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true})),{onProgress:message=>tell(message)});for(const i of result.items.sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true})))created.items.push({id:uid(),type:'file',libraryId:i.id,mime:i.mime,title:i.name});save();render();tell('أُنشئت القائمة وأُضيفت '+result.items.length+' مقاطع. '+result.errors.join(' '),!!result.errors.length)}catch(e){tell(e.message,true)}finally{$('lessonFiles').value=''}}
   else tell('أُنشئت القائمة. أضف المقاطع أو اخترها من ملفاتي.');
  }
@@ -452,7 +453,7 @@ window.rajaLessonsReady=(async()=>{
  try{selectedId=localStorage.getItem(scope+':selected')||'';const stored=JSON.parse(localStorage.getItem(scope+':positions')||'{}');if(stored&&typeof stored==='object'&&!Array.isArray(stored))checkpoints=stored}catch{}
  try{const stored=JSON.parse(localStorage.getItem(scope)||'[]');if(Array.isArray(stored))lists=stored}catch{tell('تعذر قراءة القوائم السابقة.',true)}
  for(const list of lists){if(!Number.isFinite(list.goalMinutes))list.goalMinutes=0;list.progress||={};const saved=checkpointFor(list);if(list.openListeningVersion!==23){if(saved)saved.done=false;list.openListeningVersion=23;}if(saved)list.progress[saved.itemId]||={position:saved.position,duration:saved.duration||0,completed:!!saved.done};}
- await reloadLibrary();
+ await reloadLibrary();if($('lessonCreatePanel'))$('lessonCreatePanel').open=!lists.length;
  const importButton=$('importGuestLibrary');
  if(auth?.user?.id&&importButton){
   importButton.hidden=false;

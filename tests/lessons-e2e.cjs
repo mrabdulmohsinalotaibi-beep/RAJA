@@ -25,7 +25,7 @@ function wav(seconds){const b=Buffer.alloc(44+8000*seconds*2);b.write('RIFF');b.
   await page.locator('#recorderPrevious').click();await page.waitForFunction(()=>window.rajaLessons.state().index===1&&!document.querySelector('#lessonAudio').paused);
   await page.evaluate(()=>window.rajaLessons.seek(35));assert.equal(await page.locator('#lessonAudio').evaluate(e=>e.currentTime),35);assert.ok((await page.evaluate(()=>window.rajaLessons.state())).elapsed<5,'seeking is not counted as listening');
   await page.evaluate(()=>{window.rajaLessons.seek(5);document.querySelector('#lessonAudio').pause()});
-  await page.locator('#recorderMenu').click();assert.match(await list.locator('.lesson-where').textContent(),/01-first.*5:|01-first.*0:05/);
+  await page.locator('#recorderMenu').click();assert.match(await list.locator('.lesson-where').textContent(),/01-first[\s\S]*0:05/);
   await list.locator('.lesson-tracks>summary').click();assert.match(await page.locator('.lesson-row').first().textContent(),/وصلت هنا/);assert.match(await page.locator('.lesson-row').nth(1).textContent(),/لم تبدأ بعد|توقفت عند/);
   // Updating a goal preserves position and does not impose a stop.
   await list.locator('.lesson-options>summary').click();await list.locator('.lesson-options input[type=number]').fill('1');await list.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();assert.equal(await page.evaluate(()=>window.rajaLessons.state().position),5);

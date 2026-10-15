@@ -18,7 +18,7 @@ $('recorderPrevious').onclick=()=>void window.rajaLessons?.step(-1);
 $('recorderNext').onclick=()=>void window.rajaLessons?.step(1);
 $('recorderSeek').oninput=e=>window.rajaLessons?.seek(Number(e.target.value));
 $('recorderList').onchange=e=>window.rajaLessons?.selectList(e.target.value);
-$('lessonNewList').onclick=()=>{window.rajaSwitchTab('organizer');$('lessonCreate').scrollIntoView({block:'nearest',behavior:'smooth'});$('lessonName').focus()};
+$('lessonNewList').onclick=()=>{window.rajaSwitchTab('organizer');if($('lessonCreatePanel'))$('lessonCreatePanel').open=true;$('lessonCreate').scrollIntoView({block:'nearest',behavior:'smooth'});$('lessonName').focus()};
 let wasPlaying=null,listSignature='';
 function refresh(){
  const state=window.rajaLessons?.state()||{name:'كل صوتٍ له رَجْع',title:'ابدأ رحلة الاستماع',index:0,count:0,minutes:30,start:'05:00',position:0,duration:0,elapsed:0,playing:false,picture:false,active:false,done:false};
