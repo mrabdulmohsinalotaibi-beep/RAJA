@@ -98,6 +98,7 @@ function selectList(id){
  stop();selectedId=id;
  try{localStorage.setItem(scope+':selected',id)}catch{}
  render();tell('تم اختيار '+list.name+'؛ اضغط تشغيل للمتابعة.');
+ if(partMinutes(list)&&list.items.length&&!planFor(list))void prepareParts(list).catch(e=>tell(e.message,true));
 }
 const parseTime=value=>{
  const parts=String(value).trim().replace(/[٠-٩]/g,n=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(n))).split(':');
@@ -345,7 +346,9 @@ function tick(ended=false){
  const a=active,d=duration();if(!Number.isFinite(d)||d<=0)return;
  const bounds=a.plan?core.partBounds(a.plan,a.partIndex):null,source=a.plan?.sources.find(i=>i.id===a.item.id);
  const end=bounds&&source?Math.min(d,Math.max(0,bounds.end-source.start)):d;
- const day=listeningDay(a.list),t=Math.min(end,Math.max(0,ended?d:position()));
+ const begin=bounds&&source?Math.max(0,bounds.start-source.start):0;
+ const raw=position();if(raw<begin-.025){a.lastPosition=begin;if(media)media.currentTime=begin;else yt?.seekTo(begin,true)}
+ const day=listeningDay(a.list),t=Math.min(end,Math.max(begin,ended?d:raw));
  if(a.day.key!==day.key){a.day=day;a.lastPosition=t}
  const delta=Math.max(0,t-(a.lastPosition??t));day.listened+=delta;day.furthest=day.listened;a.lastPosition=t;
  rememberTrack(a.list,a.item,t,d,t>=d-.025);
@@ -406,7 +409,7 @@ async function openItem(item,offset,playFrom=offset,autoplay=true){
   const player=media;
   player.onloadedmetadata=()=>{
    if(token!==generation)return;
-   if(!Number.isFinite(player.duration)||player.duration<=0){fail(Error('الحصص اليومية تحتاج ملفًا محدد المدة، وليس بثًا مباشرًا.'));return}
+   if(!Number.isFinite(player.duration)||player.duration<=0){fail(Error('اختر ملفًا محدد المدة، وليس بثًا مباشرًا.'));return}
    player.currentTime=Math.min(playFrom,player.duration);active.lastPosition=player.currentTime;transition=false;save(false);
    if(autoplay)void player.play().catch(()=>tell('اضغط زر التشغيل داخل المشغل؛ المتصفح يحتاج لمسة لبدء الصوت.'));
   };
@@ -442,7 +445,8 @@ async function start(list,{itemId=null,at=null,replay=false,partIndex=null,atPar
  active={list,day,item,plan,partIndex:chosenPart,offset:0,spent:day.listened,lastPosition:offset,done:false,history:[]};
  window.rajaRecorderHome?.();$('lessonNow').hidden=false;
  $('player').pause();$('youtube').removeAttribute('src');
- tell(offset?'متابعة من '+fmt(offset):'استماع مفتوح · اختر المقاطع وتنقّل بحرية.');
+ const display=plan?partPoint(list,plan,item.id,offset,chosenPart):null;
+ tell(display?'الجزء '+(chosenPart+1)+' من '+plan.count+' · '+fmt(display.position)+' / '+fmt(display.duration):offset?'متابعة من '+fmt(offset):'استماع مفتوح · اختر المقاطع وتنقّل بحرية.');
  try{await openItem(item,0,offset)}catch(e){fail(e)}
 }
 

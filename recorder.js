@@ -33,6 +33,7 @@ function refresh(){
   $('recorderTitle').textContent=state.title;
   $('recorderSubtitle').textContent=state.done?(state.segmented?'اكتمل الجزء · أعده أو انتقل للتالي':'اكتملت القائمة · يمكنك اختيار أي مقطع'):state.resumable?'جاهز للمتابعة · توقفت عند '+format(state.position):state.count?(state.segmented?'الجزء ':'المقطع ')+num.format(state.index)+' من '+num.format(state.count)+' · '+(state.playing?'تستمع الآن':'توقفت عند '+format(state.position)):'أضف دروسك من شاشة القوائم';
   $('recorderIndex').textContent=state.count?(state.segmented?'الجزء ':'المقطع ')+num.format(state.index)+' من '+num.format(state.count):'مكتبتك الصوتية';
+  $('recorderMode').textContent=state.segmented?'أجزاء متصلة':'مفتوح · متسلسل';
   $('recorderTargetLabel').textContent=state.segmented?'مدة الجزء':'الهدف اليومي';$('recorderTimeLabel').textContent=state.segmented?'مدة القائمة':'تجدد الإحصاء';
   $('recorderDaily').textContent=state.segmented?num.format(state.partMinutes)+' دقيقة':state.minutes?num.format(state.minutes)+' دقيقة':'استماع مفتوح';
   $('recorderPlay').disabled=!!state.preparing;
