@@ -17,11 +17,20 @@ $('recorderForward10').onclick=()=>window.rajaLessons?.seekBy(10);
 $('recorderPrevious').onclick=()=>void window.rajaLessons?.step(-1);
 $('recorderNext').onclick=()=>void window.rajaLessons?.step(1);
 $('recorderSeek').oninput=e=>window.rajaLessons?.seek(Number(e.target.value));
-let wasPlaying=null;
+$('recorderList').onchange=e=>window.rajaLessons?.selectList(e.target.value);
+$('lessonNewList').onclick=()=>{window.rajaSwitchTab('organizer');$('lessonCreate').scrollIntoView({block:'nearest',behavior:'smooth'});$('lessonName').focus()};
+let wasPlaying=null,listSignature='';
 function refresh(){
  const state=window.rajaLessons?.state()||{name:'كل صوتٍ له رَجْع',title:'ابدأ رحلة الاستماع',index:0,count:0,minutes:30,start:'05:00',position:0,duration:0,elapsed:0,playing:false,picture:false,active:false,done:false};
  if(state){
-  $('recorderList').textContent=state.name;$('recorderTitle').textContent=state.title;
+  const options=window.rajaLessons?.listOptions?.()||[];
+  if(state.listId&&!options.some(o=>o.id===state.listId))options.push({id:state.listId,name:state.name});
+  const signature=JSON.stringify(options);
+  if(signature!==listSignature){listSignature=signature;$('recorderList').replaceChildren();
+   for(const item of options.length?options:[{id:'',name:'كل صوتٍ له رَجْع'}]){const option=document.createElement('option');option.value=item.id;option.textContent=item.name;$('recorderList').append(option)}
+  }
+  $('recorderList').value=state.listId||'';$('recorderList').disabled=options.length<2;
+  $('recorderTitle').textContent=state.title;
   $('recorderSubtitle').textContent=state.done?'اكتملت الحصة · يمكنك إعادتها':state.resumable?'جاهز للمتابعة من '+format(state.position):state.count?'استماع متسلسل · حصة اليوم':'أضف دروسك من شاشة القوائم';
   $('recorderIndex').textContent=state.count?num.format(state.index)+' من '+num.format(state.count):'مكتبتك اليومية';
   $('recorderDaily').textContent=num.format(state.minutes)+' دقيقة';

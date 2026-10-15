@@ -12,7 +12,7 @@ const fs=require('node:fs'),path=require('node:path');
   fs.mkdirSync('layout-previews',{recursive:true});
   for(const [width,height] of [[320,568],[375,667],[390,844],[430,932],[768,1024],[1024,768],[1440,900]]){
    await page.setViewportSize({width,height});
-   await page.evaluate(()=>{document.querySelector('#recorderTitle').textContent='شرح زاد المستقنع — الدرس الأول في أحكام الطهارة والصلاة';document.querySelector('#recorderList').textContent='دروس الفقه · قائمة الاستماع اليومية'});
+   await page.evaluate(()=>{document.querySelector('#recorderTitle').textContent='شرح زاد المستقنع — الدرس الأول في أحكام الطهارة والصلاة'});
    const result=await page.evaluate(()=>{
     const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}};
     return {overflow:document.documentElement.scrollWidth>innerWidth,mainOverflow:document.querySelector('main').scrollHeight>document.querySelector('main').clientHeight+2,

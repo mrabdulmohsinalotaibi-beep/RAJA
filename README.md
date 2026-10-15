@@ -158,3 +158,7 @@ The recorder saves the last selected list/file, current item, exact paused posit
 
 ### Classic recorder — v21
 Ivory enclosure, restrained brass details, custom seek track, readable transport icons, and consistent library/account styling. The fixed player adapts to compact phones, tablets and desktop; very short landscape screens may scroll. Playback and local resume behavior are retained. Layout checks cover seven viewport sizes, long titles, control touch targets and management navigation.
+
+
+### Editable daily sessions — v22
+Each of up to 50 playlists has an independent daily session and saved position. Choose a playlist on the recorder or in management. The daily editor selects a track and a time (mm:ss or hh:mm:ss, including Arabic digits), validates native media duration, and resets today’s allotted duration from the chosen point. It saves paused, does not reorder tracks, and replay begins at the edited start. Changing lists saves each previous position.
