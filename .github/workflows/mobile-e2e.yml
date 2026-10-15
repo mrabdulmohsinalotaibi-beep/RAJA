@@ -57,3 +57,17 @@ jobs:
           name: classic-recorder-previews
           path: layout-previews/
           retention-days: 7
+  webkit-native-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install WebKit for native audio checks
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps webkit
+      - name: Verify native pause and resume in WebKit
+        run: node tests/webkit-native-audio.cjs

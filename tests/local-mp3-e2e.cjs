@@ -11,7 +11,7 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',dialog=>dialog.accept());
   await page.addInitScript(()=>{window.testAudioTypes=[];Object.defineProperty(navigator,'audioSession',{configurable:true,value:{set type(value){this.value=value;window.testAudioTypes.push(value)},get type(){return this.value}}})});
   await page.route('**/api/auth/me',r=>r.fulfill({json:{configured:true,guestAllowed:true,user:null,methods:{password:true}}}));
-  await page.goto('http://127.0.0.1:8768');await page.addLocatorHandler(page.locator('#duplicateDialog'),async()=>page.locator('#duplicateAdd').click());
+  await page.goto('http://127.0.0.1:8768');
   await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'ملفاتي',exact:true}).click();
   assert.match(await page.locator('#localImport').getAttribute('accept'),/\.mp3/);
   await page.locator('#localImport').setInputFiles({name:'صوت من الجهاز.MP3',mimeType:'application/octet-stream',buffer:tone});
@@ -33,7 +33,7 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
   await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'القوائم',exact:true}).click();
   await page.locator('#lessonName').fill('قائمة MP3');await page.locator('#lessonPartMinutes').fill('0');await page.locator('#lessonCreate button').click();
 
-  await page.locator('.lesson-list input[type=file]').setInputFiles({name:'درس بدون نوع.mp3',mimeType:'',buffer:tone});
+  await page.locator('.lesson-list input[type=file]').setInputFiles({name:'درس بدون نوع.mp3',mimeType:'',buffer:tone});await page.locator('#duplicateAdd').click();
   await page.locator('.lesson-row strong').waitFor({state:'attached'});
   assert.match(await page.locator('#lessonStatus').textContent(),/تمت إضافة 1/);
   await page.getByRole('button',{name:'تشغيل القائمة',exact:true}).click();
@@ -47,7 +47,7 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
   assert.equal(await page.locator('.lesson-row').count(),1);
   await page.reload();await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'التحميل',exact:true}).click();
   await page.locator('details').filter({has:page.locator('#file')}).locator('summary').click();
-  await page.locator('#file').setInputFiles({name:'تشغيل مباشر.mp3',mimeType:'application/octet-stream',buffer:tone});
+  await page.locator('#file').setInputFiles({name:'تشغيل مباشر.mp3',mimeType:'application/octet-stream',buffer:tone});await page.locator('#duplicateAdd').click();
   await page.waitForFunction(()=>document.querySelector('#lessonNowTitle').textContent.includes('تشغيل مباشر.mp3')&&document.querySelector('#lessonAudio').currentTime>0);
   assert.deepEqual(errors,[]);
   console.log('PASS real MP3 import with missing/generic MIME, byte-exact persistent Blob, native audio playback, playlist import and visible storage failures');
