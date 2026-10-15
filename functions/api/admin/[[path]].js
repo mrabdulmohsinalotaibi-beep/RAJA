@@ -46,7 +46,7 @@ export async function onRequest({request,env}){
   if(path==='overview'&&method==='GET'){
    const counts=await env.RAJA_DB.prepare('SELECT (SELECT COUNT(*) FROM raja_accounts) users,(SELECT COUNT(*) FROM raja_user_controls WHERE suspended=1) suspended,(SELECT COUNT(*) FROM raja_password_sessions WHERE expires_at>?) sessions,(SELECT COUNT(*) FROM raja_admin_accounts WHERE disabled=0) admins').bind(now()).first();
    const recent=await env.RAJA_DB.prepare('SELECT x.id,x.action,x.target,x.created_at,a.name actor FROM raja_admin_audit x LEFT JOIN raja_admin_accounts a ON a.id=x.actor_id ORDER BY x.created_at DESC,x.id DESC LIMIT 12').all();
-   return json({ok:true,counts,recent:recent.results,settings:await siteSettings(env),release:'v28',storage:'device-only'});
+   return json({ok:true,counts,recent:recent.results,settings:await siteSettings(env),release:'v29',storage:'device-only'});
   }
   if(path==='users'&&method==='GET'){
    const u=new URL(request.url),raw=(u.searchParams.get('q')||'').trim().slice(0,100),q=normalizeContact('sms',raw)||raw,page=Math.max(1,Math.min(100000,Number(u.searchParams.get('page'))||1)),pattern='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
