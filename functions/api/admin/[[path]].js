@@ -46,13 +46,13 @@ export async function onRequest({request,env}){
   if(path==='overview'&&method==='GET'){
    const counts=await env.RAJA_DB.prepare('SELECT (SELECT COUNT(*) FROM raja_accounts) users,(SELECT COUNT(*) FROM raja_user_controls WHERE suspended=1) suspended,(SELECT COUNT(*) FROM raja_password_sessions WHERE expires_at>?) sessions,(SELECT COUNT(*) FROM raja_admin_accounts WHERE disabled=0) admins').bind(now()).first();
    const recent=await env.RAJA_DB.prepare('SELECT x.id,x.action,x.target,x.created_at,a.name actor FROM raja_admin_audit x LEFT JOIN raja_admin_accounts a ON a.id=x.actor_id ORDER BY x.created_at DESC,x.id DESC LIMIT 12').all();
-   return json({ok:true,counts,recent:recent.results,settings:await siteSettings(env),release:'v27',storage:'device-only'});
+   return json({ok:true,counts,recent:recent.results,settings:await siteSettings(env),release:'v28',storage:'device-only'});
   }
   if(path==='users'&&method==='GET'){
-   const u=new URL(request.url),q=(u.searchParams.get('q')||'').trim().slice(0,100),page=Math.max(1,Math.min(100000,Number(u.searchParams.get('page'))||1)),pattern='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
+   const u=new URL(request.url),raw=(u.searchParams.get('q')||'').trim().slice(0,100),q=normalizeContact('sms',raw)||raw,page=Math.max(1,Math.min(100000,Number(u.searchParams.get('page'))||1)),pattern='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
    const where=" WHERE (a.name LIKE ? ESCAPE '\\' OR a.email LIKE ? ESCAPE '\\')";
    const total=await env.RAJA_DB.prepare('SELECT COUNT(*) total FROM raja_accounts a'+where).bind(pattern,pattern).first();
-   const rows=await env.RAJA_DB.prepare('SELECT a.id,a.name,a.email,a.created_at,COALESCE(c.suspended,0) suspended,(SELECT COUNT(*) FROM raja_password_sessions s WHERE s.user_id=a.id AND s.expires_at>?) sessions FROM raja_accounts a LEFT JOIN raja_user_controls c ON c.user_id=a.id'+where+' ORDER BY a.created_at DESC,a.id LIMIT 30 OFFSET ?').bind(now(),pattern,pattern,(Math.floor(page)-1)*30).all();return json({ok:true,users:rows.results,total:total.total,page:Math.floor(page)});
+   const rows=await env.RAJA_DB.prepare('SELECT a.id,a.name,CASE WHEN a.phone IS NULL THEN a.email END email,a.phone,a.created_at,COALESCE(c.suspended,0) suspended,(SELECT COUNT(*) FROM raja_password_sessions s WHERE s.user_id=a.id AND s.expires_at>?) sessions FROM raja_accounts a LEFT JOIN raja_user_controls c ON c.user_id=a.id'+where+' ORDER BY a.created_at DESC,a.id LIMIT 30 OFFSET ?').bind(now(),pattern,pattern,(Math.floor(page)-1)*30).all();return json({ok:true,users:rows.results,total:total.total,page:Math.floor(page)});
   }
   if(path==='users'&&method==='POST'){
    if(!['suspend','restore','revoke'].includes(body.action)||typeof body.id!=='string')return bad('إجراء المستخدم غير صالح.');

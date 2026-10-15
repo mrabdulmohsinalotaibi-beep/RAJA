@@ -33,7 +33,7 @@ const ready=async()=>{
   $('rajaAccountName').textContent=state.user.name||'حسابك في رَجْع';$('rajaAccountEmail').textContent=state.user.email||state.user.phone||'';
   $('rajaAuthStatus').textContent='تم تسجيل الدخول';$('rajaAuthInfo').textContent='مكتبتك الشخصية منفصلة عن الحسابات الأخرى على الجهاز.';
  }else{
-  $('rajaAuthStatus').textContent=state.error?'تعذر التحقق من خدمة الدخول':state.methods.password?'الدخول بالبريد وكلمة المرور متاح':'المكتبة المحلية متاحة';
+  $('rajaAuthStatus').textContent=state.error?'تعذر التحقق من خدمة الدخول':state.methods.password?'الدخول بالجوال أو البريد وكلمة المرور متاح':'المكتبة المحلية متاحة';
   $('rajaAuthInfo').textContent=state.methods.password?'سجل الدخول أو أنشئ حسابًا جديدًا. ويمكنك متابعة مكتبة هذا الجهاز دون تسجيل دخول.':state.configured?'سجل الدخول إلى حسابك للوصول إلى مكتبتك.':'يمكنك استخدام مكتبة الجهاز الآن.';
   if(state.configured&&!state.guestAllowed){window.rajaSwitchTab?.('settings')}
  }

@@ -5,7 +5,7 @@ export async function onRequestPost({request,env}){
  const code=input.body.recoveryCode;
  if(typeof code!=='string'||!/^[A-Za-z0-9_-]{32}$/.test(code))return json({ok:false,message:'أدخل رمز الاستعادة الذي حفظته عند إنشاء حسابك.'},400);
  try{
-  const row=await env.RAJA_DB.prepare('SELECT * FROM raja_accounts WHERE email = ?').bind(input.email).first();
+  const row=await env.RAJA_DB.prepare('SELECT * FROM raja_accounts WHERE email = ?').bind(input.identity).first();
   const valid=await verifyRecovery(code,row?.recovery_hash,env);
   if(!row||!valid)return json({ok:false,message:'بيانات الاستعادة غير صحيحة.'},401);
   const password=await hashPassword(input.body.password,env),recoveryCode=randomToken(24);

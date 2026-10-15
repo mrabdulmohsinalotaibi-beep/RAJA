@@ -7,12 +7,12 @@ export async function onRequestPost({request,env}){
  if(!name||name.length>100)return json({ok:false,message:'أدخل اسمك، بحد أقصى 100 حرف.'},400);
  try{
   if(!(await siteSettings(env)).registration_open)return json({ok:false,message:'التسجيل الجديد مغلق مؤقتًا من إدارة الموقع.'},403);
-  const existing=await env.RAJA_DB.prepare('SELECT id FROM raja_accounts WHERE email = ?').bind(input.email).first();
-  if(existing)return json({ok:false,message:'تعذر إنشاء الحساب بهذا البريد. إذا كان لك حساب، استخدم تسجيل الدخول أو الاستعادة.'},409);
+  const existing=await env.RAJA_DB.prepare('SELECT id FROM raja_accounts WHERE email = ?').bind(input.identity).first();
+  if(existing)return json({ok:false,message:'تعذر إنشاء الحساب بهذه البيانات. إذا كان لك حساب، استخدم تسجيل الدخول أو الاستعادة.'},409);
   const password=await hashPassword(input.body.password,env),recoveryCode=randomToken(24),now=Math.floor(Date.now()/1000);
-  const row={id:'account-'+crypto.randomUUID(),email:input.email,name,credential_version:1};
-  const inserted=await env.RAJA_DB.prepare('INSERT OR IGNORE INTO raja_accounts (id,email,name,password_salt,password_hash,password_iterations,recovery_hash,credential_version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,1,?,?)').bind(row.id,row.email,row.name,password.salt,password.hash,password.iterations,await hashRecovery(recoveryCode,env),now,now).run();
-  if((inserted.meta?.changes||0)!==1)return json({ok:false,message:'تعذر إنشاء الحساب بهذا البريد. استخدم تسجيل الدخول أو الاستعادة.'},409);
+  const row={id:'account-'+crypto.randomUUID(),email:input.identity,phone:input.phone||null,name,credential_version:1};
+  const inserted=await env.RAJA_DB.prepare('INSERT OR IGNORE INTO raja_accounts (id,email,phone,name,password_salt,password_hash,password_iterations,recovery_hash,credential_version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,1,?,?)').bind(row.id,row.email,row.phone,row.name,password.salt,password.hash,password.iterations,await hashRecovery(recoveryCode,env),now,now).run();
+  if((inserted.meta?.changes||0)!==1)return json({ok:false,message:'تعذر إنشاء الحساب بهذه البيانات. استخدم تسجيل الدخول أو الاستعادة.'},409);
   return await accountSession(row,env,{recoveryCode});
  }catch{return json({ok:false,message:'تعذر إنشاء الحساب الآن. حاول لاحقًا.'},503)}
 }

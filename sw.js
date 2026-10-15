@@ -1,6 +1,6 @@
 /* RAJA app shell only. User media and API streaming are never cached by service worker. */
-const CACHE='raja-shell-v27';
-const SHELL=['/','/index.html','/manifest.webmanifest?v=27','/icon.svg?v=27','/assets/raja-logo.jpeg?v=27','/site-config.js?v=27','/file-fingerprint.js?v=27','/library.js?v=27','/format-picker.js?v=27','/app-shell.js?v=27','/auth-client.js?v=27','/password-client.js?v=27','/organizer.js?v=27','/lesson-core.js?v=27','/lessons.js?v=27','/recorder.js?v=27','/recorder.css?v=27'];
+const CACHE='raja-shell-v28';
+const SHELL=['/','/index.html','/manifest.webmanifest?v=28','/icon.svg?v=28','/assets/raja-logo.jpeg?v=28','/site-config.js?v=28','/file-fingerprint.js?v=28','/library.js?v=28','/format-picker.js?v=28','/app-shell.js?v=28','/auth-client.js?v=28','/password-client.js?v=28','/organizer.js?v=28','/lesson-core.js?v=28','/lessons.js?v=28','/recorder.js?v=28','/recorder.css?v=28'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
 });
