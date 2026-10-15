@@ -355,7 +355,7 @@ async function repeatPart(a){
  transition=true;checkpoints[a.list.id]={...old,itemId:target.id,position:target.offset,duration:a.plan.sources.find(s=>s.id===target.id).duration,done:false,partKey:a.plan.key,partIndex:a.partIndex,partPosition:0,repeatMode:repeatMode(a.list),repeatIteration:a.repeatIteration};a.list.cursor={id:target.id,offset:target.offset};save(false);
  tell('إعادة الجزء '+(a.partIndex+1)+' · التكرار '+a.repeatIteration+(repeatMode(a.list)===-1?' المستمر':' من '+repeatMode(a.list)));
  try{
-  if(media&&a.item.id===target.id){media.currentTime=target.offset;transition=false;installSession(item);activateAudioSession();await playMedia(media);save(false)}
+  if(media&&a.item.id===target.id){media.currentTime=target.offset;transition=false;installSession(item);activateAudioSession();if(media.paused)await playMedia(media);save(false)}
   else await openItem(item,0,target.offset);
  }catch(e){if(active===a)fail(e)}
 }
