@@ -2,8 +2,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {DatabaseSync}=require('node:sqlite');
 (async()=>{
  const db=new DatabaseSync(':memory:');
- for(const path of ['0002-contact-auth.sql','0003-password-accounts.sql'])db.exec(fs.readFileSync(require.resolve('../migrations/'+path),'utf8'));
- const binding={prepare(sql){return {bind(...values){return {async first(){return db.prepare(sql).get(...values)||null},async run(){const r=db.prepare(sql).run(...values);return {meta:{changes:Number(r.changes)}}}}}}}};
+ for(const path of ['0002-contact-auth.sql','0003-password-accounts.sql','0005-site-admin.sql'])db.exec(fs.readFileSync(require.resolve('../migrations/'+path),'utf8'));
+ const binding={prepare(sql){let values=[];const stmt={bind(...v){values=v;return stmt},async first(){return db.prepare(sql).get(...values)||null},async run(){const r=db.prepare(sql).run(...values);return {meta:{changes:Number(r.changes)}}}};return stmt}};
  const env={RAJA_DB:binding,RAJA_SESSION_SECRET:'unit-test-only-not-a-real-session-secret-123456',RAJA_PASSWORD_LOGIN:'true'};
  const {onRequestPost:register}=await import('../functions/api/auth/register.js');
  const {onRequestPost:login}=await import('../functions/api/auth/password-login.js');

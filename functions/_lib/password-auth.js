@@ -29,10 +29,10 @@ export async function hashRecovery(code,env){
 export async function verifyRecovery(code,hash,env){
  return crypto.subtle.verify('HMAC',await pepperKey(env,'recovery-v1'),unbase64url(hash||base64url(new Uint8Array(32))),encoder.encode(code));
 }
-async function rateLimit(env,request,email,action){
+export async function rateLimit(env,request,email,action,limits={}){
  const ip=request.headers.get('CF-Connecting-IP');if(!ip)throw Error('missing-client-ip');
  const now=Math.floor(Date.now()/1000),bucket=Math.floor(now/600);
- for(const [scope,value,max] of [['ip',ip,action==='login'?30:5],['email',email,action==='login'?10:3]]){
+ for(const [scope,value,max] of [['ip',ip,limits.ip??(action==='login'?30:5)],['email',email,limits.identity??(action==='login'?10:3)]]){
   const digest=base64url(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(value))));
   const key='password:'+action+':'+scope+':'+digest+':'+bucket;
   const row=await env.RAJA_DB.prepare('INSERT INTO raja_auth_limits (key, attempts, expires_at) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET attempts = attempts + 1 WHERE attempts < ? RETURNING attempts').bind(key,now+1200,max).first();
@@ -60,6 +60,7 @@ export async function passwordRequest(request,env,action){
  return {body,email};
 }
 export async function accountSession(row,env,extra={}){
+ const control=await env.RAJA_DB.prepare('SELECT suspended FROM raja_user_controls WHERE user_id=?').bind(row.id).first();if(control?.suspended)throw Error('account-disabled');
  const now=Math.floor(Date.now()/1000),sid=randomToken(32),expires=now+7*86400;
  await env.RAJA_DB.prepare('DELETE FROM raja_password_sessions WHERE session_id IN (SELECT session_id FROM raja_password_sessions WHERE expires_at<=? LIMIT 100)').bind(now).run();
  const result=await env.RAJA_DB.prepare('INSERT INTO raja_password_sessions (session_id, user_id, credential_version, expires_at) SELECT ?, id, credential_version, ? FROM raja_accounts WHERE id = ? AND credential_version = ?').bind(sid,expires,row.id,row.credential_version).run();

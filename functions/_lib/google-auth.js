@@ -70,7 +70,7 @@ export async function currentUser(request, env) {
       value.iat > now + 30 || value.exp < now || value.exp > now + 8 * 86400) return null;
   if(value.iss==='raja-password'){
     if(!env.RAJA_DB||!value.sid||!value.email)return null;
-    try{const session=await env.RAJA_DB.prepare('SELECT s.user_id FROM raja_password_sessions s JOIN raja_accounts a ON a.id=s.user_id WHERE s.session_id=? AND s.user_id=? AND s.expires_at>? AND s.credential_version=a.credential_version').bind(value.sid,value.sub,now).first();if(!session)return null}catch{return null}
+    try{const session=await env.RAJA_DB.prepare('SELECT s.user_id FROM raja_password_sessions s JOIN raja_accounts a ON a.id=s.user_id LEFT JOIN raja_user_controls c ON c.user_id=a.id WHERE s.session_id=? AND s.user_id=? AND s.expires_at>? AND s.credential_version=a.credential_version AND COALESCE(c.suspended,0)=0').bind(value.sid,value.sub,now).first();if(!session)return null}catch{return null}
   }
   return { id: String(value.sub), email: String(value.email||''), phone: String(value.phone||''), name: String(value.name || ''), emailVerified:value.iss!=='raja-password' };
 }

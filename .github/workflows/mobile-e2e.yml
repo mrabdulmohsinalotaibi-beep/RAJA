@@ -15,6 +15,11 @@ on:
       - 'password-client.js'
       - 'functions/_lib/**'
       - 'functions/api/auth/**'
+      - 'functions/api/admin/**'
+      - 'functions/api/site-config.js'
+      - 'admin/**'
+      - 'site-config.js'
+      - 'migrations/**'
       - 'functions/api/organizer.js'
       - 'library.js'
       - 'file-fingerprint.js'
@@ -45,11 +50,14 @@ jobs:
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Verify daily lessons and mobile playback locally
-        run: node tests/cache-version.cjs && node tests/lesson-core.cjs && node tests/listening-parts.cjs && node tests/file-fingerprint.cjs && node tests/lesson-player.cjs && node tests/recorder-shell.cjs && node tests/contact-auth.cjs && node tests/password-auth.cjs && node tests/password-ui-e2e.cjs && node tests/sync-core.cjs && node tests/cloud-api.cjs && node tests/device-local.cjs && node tests/resume-e2e.cjs && node tests/local-mp3-e2e.cjs && node tests/lessons-e2e.cjs && node tests/classic-layout.cjs && node tests/edit-today-e2e.cjs && node tests/parts-e2e.cjs && node tests/duplicates-e2e.cjs && node tests/repeat-e2e.cjs && node tests/youtube-shortcuts-e2e.cjs
+        run: node tests/cache-version.cjs && node tests/lesson-core.cjs && node tests/listening-parts.cjs && node tests/file-fingerprint.cjs && node tests/lesson-player.cjs && node tests/recorder-shell.cjs && node tests/contact-auth.cjs && node tests/password-auth.cjs && node tests/admin-api.cjs && node tests/admin-ui-e2e.cjs && node tests/password-ui-e2e.cjs && node tests/sync-core.cjs && node tests/cloud-api.cjs && node tests/device-local.cjs && node tests/resume-e2e.cjs && node tests/local-mp3-e2e.cjs && node tests/lessons-e2e.cjs && node tests/classic-layout.cjs && node tests/edit-today-e2e.cjs && node tests/parts-e2e.cjs && node tests/duplicates-e2e.cjs && node tests/repeat-e2e.cjs && node tests/youtube-shortcuts-e2e.cjs
       - name: Verify live RAJA mobile UI with mocked media endpoints
         env:
           RAJA_URL: https://raja.athat.app/
         run: node tests/mobile-smoke.cjs
+      - name: Verify deployed administration boundaries
+        if: github.ref == 'refs/heads/main'
+        run: node tests/admin-live-smoke.mjs
       - name: Save recorder layout previews
         if: always()
         uses: actions/upload-artifact@v4
