@@ -16,9 +16,10 @@ const fs=require('node:fs'),path=require('node:path');
    const result=await page.evaluate(()=>{
     const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}};
     return {overflow:document.documentElement.scrollWidth>innerWidth,mainOverflow:document.querySelector('main').scrollHeight>document.querySelector('main').clientHeight+2,
-     pieces:['.raja-top','.recorder-status','.recorder-display','.recorder-media','.recorder-controls','.recorder-replay','.recorder-summary','#recorderMessage','.recorder-footer'].map(box),footer:box('.recorder-footer'),height:innerHeight,
+     pieces:['.raja-top','.recorder-status','.recorder-display','.recorder-media','.recorder-controls','.recorder-replay','.recorder-summary','#recorderMessage','.recorder-footer'].map(box),footer:box('.recorder-footer'),height:innerHeight,display:box('.recorder-display'),time:box('.recorder-time'),
      buttons:[...document.querySelectorAll('.recorder-controls button')].map(b=>({w:b.offsetWidth,h:b.offsetHeight}))};
    });
+   assert.ok(result.time.bottom<=result.display.bottom-3,'display content spills '+width+'x'+height+': '+JSON.stringify(result));
    assert.equal(result.overflow,false,'horizontal overflow '+width+'x'+height);
    assert.equal(result.mainOverflow,false,'main overflow '+width+'x'+height+': '+JSON.stringify(result));
    for(let i=1;i<result.pieces.length;i++)assert.ok(result.pieces[i].top>=result.pieces[i-1].bottom-1,'overlap '+width+'x'+height+': '+JSON.stringify(result));
