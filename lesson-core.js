@@ -21,6 +21,19 @@ function remember(list,elapsed,cursor){
   list.cursor={...cursor};
  }
 }
-const api={dayKey,ensureDay,remember,first};
+function parts(items,minutes){
+ const size=Number(minutes)*60;if(!Number.isFinite(size)||size<=0)throw Error('مدة الجزء غير صالحة.');
+ let total=0;const sources=items.map(item=>{const duration=Number(item.duration);if(!Number.isFinite(duration)||duration<=0)throw Error('تحتاج مدة كل ملف لتجهيز الأجزاء.');const source={id:item.id,start:total,end:total+duration,duration};total+=duration;return source});
+ return {sources,total,size,count:Math.ceil(Math.max(0,total-.000001)/size),key:JSON.stringify([size,sources.map(s=>[s.id,s.duration])])};
+}
+function partBounds(plan,index){const i=Math.max(0,Math.min(plan.count-1,Math.floor(index)||0));return {index:i,start:i*plan.size,end:Math.min(plan.total,(i+1)*plan.size),duration:Math.min(plan.size,plan.total-i*plan.size)}}
+function absolute(plan,id,offset){const source=plan.sources.find(s=>s.id===id);return source?source.start+Math.max(0,Math.min(source.duration,Number(offset)||0)):0}
+function partIndex(plan,value,preferred=null){
+ const n=Math.max(0,Math.min(plan.total,Number(value)||0));
+ if(Number.isInteger(preferred)&&preferred>=0&&preferred<plan.count){const b=partBounds(plan,preferred);if(n>=b.start-.001&&n<=b.end+.001)return preferred}
+ return Math.max(0,Math.min(plan.count-1,Math.floor((n+.000001)/plan.size)));
+}
+function sourceAt(plan,value){const n=Math.max(0,Math.min(plan.total,Number(value)||0));const source=plan.sources.find(s=>n<s.end-.000001)||plan.sources.at(-1);return source?{id:source.id,offset:Math.max(0,Math.min(source.duration,n-source.start))}:null}
+const api={dayKey,ensureDay,remember,first,parts,partBounds,absolute,partIndex,sourceAt};
 if(typeof module!=='undefined')module.exports=api;else root.RajaLessons=api;
 })(typeof window!=='undefined'?window:globalThis);

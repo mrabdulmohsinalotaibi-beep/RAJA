@@ -10,7 +10,7 @@ function wav(seconds){const b=Buffer.alloc(44+8000*seconds*2);b.write('RIFF');b.
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
   await page.route('**/api/auth/me',r=>r.fulfill({json:{configured:false,user:null}}));
   await page.goto('http://127.0.0.1:8772');await page.locator('#recorderMenu').click();
-  for(const name of ['قائمة الفقه','قائمة التفسير']){await page.locator('#lessonNewList').click();await page.locator('#lessonName').fill(name);await page.locator('#lessonMinutes').fill('1');await page.locator('#lessonCreate button').click()}
+  for(const name of ['قائمة الفقه','قائمة التفسير']){await page.locator('#lessonNewList').click();await page.locator('#lessonName').fill(name);await page.locator('#lessonMinutes').fill('1');await page.locator('#lessonPartMinutes').fill('0');await page.locator('#lessonCreate button').click()}
   await page.waitForFunction(()=>window.rajaLessons.snapshot().length===2);
   assert.match(await page.locator('#lessonListCount').textContent(),/2 من 50/);
   const ids=await page.evaluate(()=>window.rajaLessons.snapshot().map(l=>l.id));const a=page.locator('[data-lesson-list="'+ids[0]+'"]'),b=page.locator('[data-lesson-list="'+ids[1]+'"]');

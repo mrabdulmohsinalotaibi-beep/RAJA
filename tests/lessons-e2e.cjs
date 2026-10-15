@@ -9,7 +9,7 @@ function wav(seconds){const b=Buffer.alloc(44+8000*seconds*2);b.write('RIFF');b.
   await page.addInitScript(()=>{window.lessonTestNow=Date.parse('2026-10-15T03:00:00Z');Date.now=()=>window.lessonTestNow});
   await page.goto('http://127.0.0.1:8766');await page.locator('#recorderMenu').click();
   await page.locator('#lessonName').fill('دروس الفقه');assert.equal(await page.locator('#lessonMinutes').inputValue(),'0');
-  await page.locator('#lessonFiles').setInputFiles([{name:'02-second.wav',mimeType:'audio/wav',buffer:wav(40)},{name:'01-first.wav',mimeType:'audio/wav',buffer:wav(40)}]);await page.locator('#lessonCreate button').click();
+  await page.locator('#lessonFiles').setInputFiles([{name:'02-second.wav',mimeType:'audio/wav',buffer:wav(40)},{name:'01-first.wav',mimeType:'audio/wav',buffer:wav(40)}]);await page.locator('#lessonPartMinutes').fill('0');await page.locator('#lessonCreate button').click();
   await page.waitForFunction(()=>window.rajaLessons.snapshot()[0]?.items.length===2);assert.equal(await page.evaluate(()=>window.rajaLessons.state().minutes),0);
   const list=page.locator('.lesson-list');await list.locator('.lesson-tracks>summary').click();
   assert.match(await page.locator('.lesson-row strong').first().textContent(),/01-first/);
@@ -28,7 +28,7 @@ function wav(seconds){const b=Buffer.alloc(44+8000*seconds*2);b.write('RIFF');b.
   await page.locator('#recorderMenu').click();assert.match(await list.locator('.lesson-where').textContent(),/01-first[\s\S]*0:05/);
   await list.locator('.lesson-tracks>summary').click();assert.match(await page.locator('.lesson-row').first().textContent(),/وصلت هنا/);assert.match(await page.locator('.lesson-row').nth(1).textContent(),/لم تبدأ بعد|توقفت عند/);
   // Updating a goal preserves position and does not impose a stop.
-  await list.locator('.lesson-options>summary').click();await list.locator('.lesson-options input[type=number]').fill('1');await list.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();assert.equal(await page.evaluate(()=>window.rajaLessons.state().position),5);
+  await list.locator('.lesson-options>summary').click();await list.locator('.lesson-options input[type=number]').nth(1).fill('1');await list.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();assert.equal(await page.evaluate(()=>window.rajaLessons.state().position),5);
   await list.getByRole('button',{name:'متابعة',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#lessonAudio').paused);
   await page.locator('#recorderReplay').click();await page.waitForFunction(()=>document.querySelector('#lessonAudio').currentTime<2&&!document.querySelector('#lessonAudio').paused);
   await page.evaluate(()=>{document.addEventListener('loadedmetadata',e=>{if(e.target.id==='lessonAudio')e.target.playbackRate=16},true);document.querySelector('#lessonAudio').playbackRate=16});

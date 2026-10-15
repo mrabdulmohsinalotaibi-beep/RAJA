@@ -31,7 +31,7 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
   for(const check of nativeResume)assert.deepEqual(check,{categories:'ambient,playback',source:true,position:true,playing:true});
 
   await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'القوائم',exact:true}).click();
-  await page.locator('#lessonName').fill('قائمة MP3');await page.locator('#lessonCreate button').click();
+  await page.locator('#lessonName').fill('قائمة MP3');await page.locator('#lessonPartMinutes').fill('0');await page.locator('#lessonCreate button').click();
 
   await page.locator('.lesson-list input[type=file]').setInputFiles({name:'درس بدون نوع.mp3',mimeType:'',buffer:tone});
   await page.locator('.lesson-row strong').waitFor({state:'attached'});
