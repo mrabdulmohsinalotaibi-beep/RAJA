@@ -162,3 +162,9 @@ Ivory enclosure, restrained brass details, custom seek track, readable transport
 
 ### Editable daily sessions — v22
 Each of up to 50 playlists has an independent daily session and saved position. Choose a playlist on the recorder or in management. The daily editor selects a track and a time (mm:ss or hh:mm:ss, including Arabic digits), validates native media duration, and resets today’s allotted duration from the chosen point. It saves paused, does not reorder tracks, and replay begins at the edited start. Changing lists saves each previous position.
+
+
+### Open listening — v23 (supersedes hard daily sessions)
+Playback is open by default, including existing lists. Daily goals are opt-in (`goalMinutes`, 0 means open), informational, and never stop or restrict playback. Track time and daily listening time are separate. Next/previous and seeking are unrestricted; replay restarts the current track. Last positions survive daily rollover and list edits; completed tracks are recorded individually. Old checkpoint positions, including daily cutoff checkpoints, migrate without moving the saved point. All media and listening data remain local to each device.
+
+Playlist cards show the last track and stop time, with a continue action and collapsible tracks/options. New playlists can import multiple naturally sorted files in one operation. Pointer handles reorder on touch or mouse, with arrow buttons as an accessible alternative. Changing order or appending files preserves the checkpoint. Browser checks cover open playback beyond a goal, native session recovery, cross-day resume, migration, per-list positions, arbitrary navigation, ordering and layout.

@@ -1,22 +1,22 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#efebe3"><link rel="manifest" href="/manifest.webmanifest?v=22"><link rel="icon" href="/icon.svg?v=22" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/raja-logo.jpeg?v=22"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="رَجْع"><title>رَجْع | RAJA</title><link rel="stylesheet" href="/recorder.css?v=22"></head><body><main>
-<header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><img class="raja-logo" src="/assets/raja-logo.jpeg?v=22" width="46" height="46" alt="رَجْع"><span class="brand-copy"><strong>رَجْع</strong><small>RAJA</small></span></a><button id="recorderMenu" class="recorder-menu" type="button" aria-label="القوائم والتحميل والحساب"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6"/></svg></button><button id="recorderBack" class="recorder-back" type="button" aria-label="العودة إلى المسجل" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5 7 7-7 7M17 12H3"/></svg></button></header>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#efebe3"><link rel="manifest" href="/manifest.webmanifest?v=23"><link rel="icon" href="/icon.svg?v=23" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/raja-logo.jpeg?v=23"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="رَجْع"><title>رَجْع | RAJA</title><link rel="stylesheet" href="/recorder.css?v=23"></head><body><main>
+<header class="raja-top"><a class="raja-brand" href="/" aria-label="رَجْع الرئيسية"><img class="raja-logo" src="/assets/raja-logo.jpeg?v=23" width="46" height="46" alt="رَجْع"><span class="brand-copy"><strong>رَجْع</strong><small>RAJA</small></span></a><button id="recorderMenu" class="recorder-menu" type="button" aria-label="القوائم والتحميل والحساب"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6"/></svg></button><button id="recorderBack" class="recorder-back" type="button" aria-label="العودة إلى المسجل" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5 7 7-7 7M17 12H3"/></svg></button></header>
 <section id="recorderScreen" aria-label="المسجل">
-<div class="recorder-status"><span><b></b>حصة اليوم</span><span id="recorderIndex">مكتبتك اليومية</span></div>
+<div class="recorder-status"><span><b></b>استماعك</span><span id="recorderIndex">مكتبتك اليومية</span></div>
 <div class="recorder-display"><select class="recorder-list" id="recorderList" aria-label="اختيار قائمة الاستماع"><option value="">كل صوتٍ له رَجْع</option></select><h1 id="recorderTitle">ابدأ رحلة الاستماع</h1><p id="recorderSubtitle">أضف دروسك إلى قائمة من زر الإعدادات</p><input id="recorderSeek" class="recorder-range" type="range" min="0" max="1" value="0" step="0.1" aria-label="موضع الاستماع" disabled><div class="recorder-time"><span id="recorderElapsed">00:00</span><span id="recorderDuration">30:00</span></div></div>
-<div class="recorder-media" id="recorderMedia"><div class="recorder-cassette"><div class="recorder-reels"><span class="recorder-reel" aria-hidden="true"></span><div class="recorder-tape-label"><img class="raja-tape-logo" src="/assets/raja-logo.jpeg?v=22" width="32" height="32" alt="">DAILY</div><span class="recorder-reel" aria-hidden="true"></span></div><div class="recorder-speaker" aria-hidden="true"></div></div>
+<div class="recorder-media" id="recorderMedia"><div class="recorder-cassette"><div class="recorder-reels"><span class="recorder-reel" aria-hidden="true"></span><div class="recorder-tape-label"><img class="raja-tape-logo" src="/assets/raja-logo.jpeg?v=23" width="32" height="32" alt="">DAILY</div><span class="recorder-reel" aria-hidden="true"></span></div><div class="recorder-speaker" aria-hidden="true"></div></div>
 <section id="lessonNow" class="card lesson-now" hidden aria-label="مشغل الدروس اليومية">
 <strong id="lessonNowTitle"></strong>
 <audio id="lessonAudio" controls preload="metadata" hidden></audio>
 <video id="lessonVideo" controls playsinline preload="metadata" hidden></video>
 <div id="lessonYoutubeWrap" hidden><div id="lessonYoutube"></div></div>
 <p id="lessonProgress" role="status"></p>
-<progress id="lessonDailyProgress" max="100" value="0" aria-label="تقدم حصة اليوم"></progress>
-<div class="line"><button type="button" id="lessonPause" class="org-btn">إيقاف مؤقت</button><button type="button" id="lessonReplay" class="org-btn">إعادة حصة اليوم</button><button type="button" id="lessonStop" class="org-btn">إغلاق المشغل</button></div>
+<progress id="lessonDailyProgress" max="100" value="0" aria-label="تقدم الهدف اليومي"></progress>
+<div class="line"><button type="button" id="lessonPause" class="org-btn">إيقاف مؤقت</button><button type="button" id="lessonReplay" class="org-btn">إعادة المقطع</button><button type="button" id="lessonStop" class="org-btn">إغلاق المشغل</button></div>
 </section>
 </div>
 <div class="recorder-controls"><button type="button" id="recorderPrevious" aria-label="الدرس السابق"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14M19 5 8 12l11 7Z"/></svg></button><button type="button" id="recorderBack10" aria-label="رجوع عشر ثوانٍ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8a8 8 0 1 1-1 6M5 3v5h5"/><text x="12" y="15" text-anchor="middle">10</text></svg></button><button type="button" id="recorderPlay" class="recorder-play" aria-label="تشغيل"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 12 8-12 8Z"/></svg></button><button type="button" id="recorderForward10" aria-label="تقديم عشر ثوانٍ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a8 8 0 1 0 1 6M19 3v5h-5"/><text x="12" y="15" text-anchor="middle">10</text></svg></button><button type="button" id="recorderNext" aria-label="الدرس التالي"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14M5 5l11 7-11 7Z"/></svg></button></div>
-<div class="recorder-replay"><button type="button" id="recorderReplay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12l-3-3m3 3-3 3M20 16H8l3 3m-3-3 3-3"/></svg>إعادة حصة اليوم</button></div>
-<div class="recorder-summary"><div><span>المدة اليومية</span><strong id="recorderDaily">٣٠ دقيقة</strong></div><div><span>بداية اليوم</span><strong id="recorderDayStart">٥:٠٠ صباحًا</strong></div><div><span>وضع التشغيل</span><strong>متسلسل</strong></div></div><p id="recorderMessage" role="status" aria-live="polite"></p>
+<p id="recorderPlayLabel" class="recorder-play-label">ابدأ الاستماع</p><div class="recorder-replay"><button type="button" id="recorderReplay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12l-3-3m3 3-3 3M20 16H8l3 3m-3-3 3-3"/></svg>إعادة المقطع</button></div>
+<div class="recorder-summary"><div><span>الهدف اليومي</span><strong id="recorderDaily">استماع مفتوح</strong></div><div><span>تجدد الإحصاء</span><strong id="recorderDayStart">٥:٠٠ صباحًا</strong></div><div><span>وضع التشغيل</span><strong>مفتوح · متسلسل</strong></div></div><div id="recorderGoal" class="recorder-goal" hidden><span id="recorderGoalText"></span><progress id="recorderGoalProgress" max="100" value="0" aria-label="تحقيق الهدف اليومي"></progress></div><p id="recorderMessage" role="status" aria-live="polite"></p>
 </section>
 <section id="managementScreen" hidden aria-label="إدارة المكتبة والحساب"><nav class="management-tabs" aria-label="إدارة رجع"><button type="button" data-tab-button="organizer">القوائم</button><button type="button" data-tab-button="search">التحميل</button><button type="button" data-tab-button="settings">حسابي</button></nav><div id="manageContent"><div class="management-tools"><button type="button" data-tab-button="files">ملفاتي</button><button type="button" data-tab-button="downloads">سجل التنزيلات</button></div>
 <section class="raja-panel" data-tab-panel="search">
@@ -86,15 +86,14 @@
 </section>
 <section class="raja-panel" data-tab-panel="organizer" hidden id="organizerSection">
 <h1 class="raja-section-title">مكتبتك الصوتية</h1>
-<p class="raja-section-intro">قوائم مرتبة وحصة يومية لكل قائمة.</p>
+<p class="raja-section-intro">اختر قائمتك وكمّل من حيث توقفت.</p>
 <section class="card" id="lessonLibrary">
-<h2>مكتبة الدروس اليومية</h2>
-<p class="raja-tip">رتّب دروسك وشغّل حصة يومية. زر «إعادة حصة اليوم» يعيد الجزء نفسه؛ اليوم التالي يتابع من أبعد موضع وصلته. بداية اليوم بتوقيت السعودية، وليست موعد تشغيل تلقائي.</p>
-<div class="lesson-library-heading"><h3>قوائمك</h3><button type="button" id="lessonNewList" class="org-btn">إضافة قائمة جديدة</button></div><p id="lessonListCount" class="raja-tip"></p><form id="lessonCreate" class="lesson-form" aria-label="إنشاء قائمة دروس جديدة">
+<h2>قوائم الاستماع</h2>
+<p class="raja-tip">تنقّل بين المقاطع بحرية. يظهر آخر مقطع وموضع التوقف لكل قائمة، والهدف اليومي اختياري ولا يوقف الصوت.</p><div class="lesson-library-heading"><h3>قوائمك</h3><button type="button" id="lessonNewList" class="org-btn">إضافة قائمة جديدة</button></div><p id="lessonListCount" class="raja-tip"></p><form id="lessonCreate" class="lesson-form" aria-label="إنشاء قائمة دروس جديدة">
 <label>اسم القائمة<input id="lessonName" required maxlength="100" placeholder="مثل: دروس التفسير"></label>
-<label>المدة اليومية بالدقائق<input id="lessonMinutes" required type="number" min="1" max="720" value="30"></label>
-<label>بداية اليوم<input id="lessonStart" required type="time" value="05:00"></label>
-<button type="submit">إنشاء قائمة دروس</button></form>
+<label>هدف يومي اختياري (0 = مفتوح)<input id="lessonMinutes" required type="number" min="0" max="720" value="0"></label>
+<input id="lessonStart" type="hidden" value="05:00"><label class="wide">المقاطع (اختياري)<input id="lessonFiles" type="file" accept="audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.mp4,.m4v,.mov,.webm" multiple><small>اختر عدة ملفات؛ تُرتّب تلقائيًا بالأسماء.</small></label>
+<button type="submit">إنشاء القائمة</button></form>
 <p id="lessonStatus" role="status" aria-live="polite"></p>
 <div id="lessonLists"></div>
 <p class="raja-tip">تبقى القوائم والملفات وتقدم الاستماع على هذا الجهاز فقط حتى لو دخلت بالحساب نفسه من جهاز آخر. الصوت يدعم أزرار شاشة القفل حيث يسمح الجهاز والمتصفح؛ إغلاق التطبيق بالقوة يوقفه. روابط YouTube تعمل في مشغله المرئي ولا تدعم الاستماع بالخلفية هنا.</p>
@@ -141,7 +140,7 @@
 <dialog id="legalDialog" aria-labelledby="legalTitle"><h2 id="legalTitle"></h2><div id="legalContent"></div><button type="button" id="legalClose">إغلاق</button></dialog>
 <div id="rajaAuthGate" class="raja-auth-overlay" hidden aria-label="تسجيل الدخول إلى رَجْع">
   <div class="raja-auth-card">
-    <img class="raja-auth-icon" src="/assets/raja-logo.jpeg?v=22" width="68" height="68" alt="شعار رَجْع">
+    <img class="raja-auth-icon" src="/assets/raja-logo.jpeg?v=23" width="68" height="68" alt="شعار رَجْع">
     <h1>مرحبًا بك في رَجْع</h1>
     <p>سجّل الدخول بحساب Google الخاص بك لتنزيل المقاطع واستخدام مكتبتك الشخصية.</p>
     <a id="rajaGoogleLogin" class="raja-auth-button" href="/api/auth/login"><span class="raja-google-letter">G</span> المتابعة باستخدام Google</a>
@@ -167,4 +166,4 @@ $('form').onsubmit=e=>{e.preventDefault();let u;try{u=new URL($('media').value);
 $('clear').onclick=()=>{if(confirm('مسح الجدولة المحلية؟')){localStorage.removeItem(key);v.removeAttribute('src');v.load();$('featured').textContent='لم يُضف مقطع اليوم بعد.';refresh()}};refresh();
 
 window.rajaLoadMedia=load;window.rajaOpenYoutube=openYouTube;window.rajaYoutubeId=youtubeId;
-</script><script src="/auth-client.js?v=22" defer></script><script src="/password-client.js?v=22" defer></script><script src="/library.js?v=22" defer></script><script src="/format-picker.js?v=22" defer></script><script src="/app-shell.js?v=22" defer></script><script src="/organizer.js?v=22" defer></script><script src="/lesson-core.js?v=22" defer></script><script src="/lessons.js?v=22" defer></script><script src="/recorder.js?v=22" defer></script></body></html>
+</script><script src="/auth-client.js?v=23" defer></script><script src="/password-client.js?v=23" defer></script><script src="/library.js?v=23" defer></script><script src="/format-picker.js?v=23" defer></script><script src="/app-shell.js?v=23" defer></script><script src="/organizer.js?v=23" defer></script><script src="/lesson-core.js?v=23" defer></script><script src="/lessons.js?v=23" defer></script><script src="/recorder.js?v=23" defer></script></body></html>

@@ -32,14 +32,14 @@ const tone=Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/tone.mp3.ba
 
   await page.locator('#recorderMenu').click();await page.getByRole('button',{name:'القوائم',exact:true}).click();
   await page.locator('#lessonName').fill('قائمة MP3');await page.locator('#lessonCreate button').click();
-  await page.locator('.lesson-list summary').click();
+
   await page.locator('.lesson-list input[type=file]').setInputFiles({name:'درس بدون نوع.mp3',mimeType:'',buffer:tone});
-  await page.locator('.lesson-row strong').waitFor();
+  await page.locator('.lesson-row strong').waitFor({state:'attached'});
   assert.match(await page.locator('#lessonStatus').textContent(),/تمت إضافة 1/);
-  await page.getByRole('button',{name:'تشغيل حصة اليوم',exact:true}).click();
+  await page.getByRole('button',{name:'تشغيل القائمة',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('#lessonAudio').currentTime>0);
   await page.reload();await page.locator('#recorderMenu').click();
-  await page.locator('.lesson-list summary').click();
+  await page.locator('.lesson-add>summary').click();
   // A storage failure must be visible in the same playlist screen.
   await page.evaluate(()=>{const original=IDBDatabase.prototype.transaction;IDBDatabase.prototype.transaction=function(stores,mode,...rest){if(mode==='readwrite')throw new DOMException('Storage full','QuotaExceededError');return original.call(this,stores,mode,...rest)}});
   await page.locator('.lesson-list input[type=file]').setInputFiles({name:'لن يحفظ.mp3',mimeType:'audio/mpeg',buffer:tone});

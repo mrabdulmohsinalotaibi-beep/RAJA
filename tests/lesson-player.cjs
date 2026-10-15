@@ -15,7 +15,7 @@ const nodes=new Map(),handlers={},docHandlers={},storage=new Map(),sessionAction
 const audioSession={set type(value){this.value=value;audioTypes.push(value)},get type(){return this.value}};
 const get=id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)};
 const key='raja-lessons-v1-local';
-storage.set(key,JSON.stringify([{id:'list',name:'Lessons',minutes:1,start:'05:00',items:[
+storage.set(key,JSON.stringify([{id:'list',name:'Lessons',minutes:1,goalMinutes:1,start:'05:00',items:[
  {id:'first',type:'file',libraryId:'f1',title:'first.wav'},
  {id:'second',type:'file',libraryId:'f2',title:'second.wav'}
 ]}]));
@@ -39,7 +39,7 @@ function find(node,text){if(node.textContent===text)return node;for(const c of n
 const stored=()=>JSON.parse(storage.get(key))[0];
 (async()=>{
  await flush();
- await find(get('lessonLists'),'تشغيل حصة اليوم').onclick();await flush();
+ await find(get('lessonLists'),'تشغيل القائمة').onclick();await flush();
  const audio=get('lessonAudio');assert.equal(audio.paused,false);assert.equal(audio.currentTime,0);
  context.document.hidden=true;docHandlers.visibilitychange();assert.equal(audio.paused,false);
  assert.equal(sessionActions.play,null);assert.equal(sessionActions.pause,null);assert.equal(sessionActions.stop,null);
@@ -52,18 +52,25 @@ const stored=()=>JSON.parse(storage.get(key))[0];
  assert.equal(context.rajaLessons.state().position,4);assert.equal(context.rajaLessons.state().resumable,true);
  await context.rajaLessons.toggle();await flush();assert.equal(audio.currentTime,4);assert.equal(audio.paused,false);
 
- audio.currentTime=40;audio.ontimeupdate();await flush();
+ // Free next/previous works even for unvisited tracks; seeking can cross the old daily boundary.
+ await context.rajaLessons.step(1);await flush();assert.match(get('lessonNowTitle').textContent,/second/);assert.equal(audio.currentTime,0);
+ context.rajaLessons.seek(35);assert.equal(audio.currentTime,35);assert.equal(audio.paused,false);
+ await context.rajaLessons.step(-1);await flush();assert.match(get('lessonNowTitle').textContent,/first/);assert.equal(audio.currentTime,0);
+ // A goal is informational: crossing it must leave the audio running.
+ const list=context.rajaLessons.snapshot()[0];
+ // Simulate successive native playback updates rather than a manual seek.
+ for(const t of [10,20,30,40]){audio.currentTime=t;audio.ontimeupdate();await flush()}
  assert.match(get('lessonNowTitle').textContent,/second/);
- audio.currentTime=20;audio.ontimeupdate();
- assert.equal(audio.paused,true);assert.equal(stored().day.furthest,60);assert.equal(stored().cursor.id,'second');assert.equal(stored().cursor.offset,20);
- get('lessonReplay').onclick();await flush();assert.equal(audio.currentTime,0);assert.match(get('lessonNowTitle').textContent,/first/);
- audio.currentTime=5;audio.ontimeupdate();assert.equal(stored().cursor.offset,20);
- clock+=86400000;get('lessonReplay').onclick();await flush();assert.equal(audio.currentTime,20);
- assert.equal(stored().day.key,'2026-10-15');assert.equal(stored().day.start.id,'second');
+ for(const t of [10,20,30]){audio.currentTime=t;audio.ontimeupdate();await flush()}
+ assert.equal(audio.paused,false);assert.ok(context.rajaLessons.state().elapsed>=60);assert.equal(context.rajaLessons.state().goalReached,true);
+ audio.pause();audio.currentTime=12;audio.ontimeupdate();context.rajaLessons.stop();
+ clock+=86400000;assert.equal(context.rajaLessons.state().position,12);assert.equal(context.rajaLessons.state().index,2);assert.equal(context.rajaLessons.state().elapsed,0);
+ await context.rajaLessons.toggle();await flush();assert.equal(audio.currentTime,12);
+ get('lessonReplay').onclick();await flush();assert.equal(audio.currentTime,0);assert.match(get('lessonNowTitle').textContent,/second/);
  // A newer tab's storage event must not write stale state back over it.
  const latest=stored();latest.name='Other tab';const incoming=JSON.stringify([latest]);storage.set(key,incoming);const before=writes;
  handlers.storage({key,newValue:incoming});assert.equal(writes,before);assert.equal(storage.get(key),incoming);
  assert.equal(audio.paused,true);
  await new Promise(r=>setTimeout(r,5));assert.equal(audioSession.type,'auto');
- console.log('PASS audio category recovery, paused-session preservation, controller sequence, cutoff, hidden-page continuity, repeat, rollover, cross-tab preservation');
+ console.log('PASS audio category recovery, paused-session preservation, free track navigation, open listening, hidden-page continuity, current-track replay, cross-day resume, cross-tab preservation');
 })().catch(e=>{console.error(e);process.exitCode=1});

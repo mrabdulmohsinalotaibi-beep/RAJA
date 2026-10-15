@@ -35,6 +35,7 @@
       button.setAttribute('aria-current', on ? 'page' : 'false');
     }
     if (tab === 'downloads') drawHistory();
+    if (tab === 'organizer') window.rajaLessons?.refreshLists?.();
     $('manageContent').scrollTop=0;
   }
   for (const b of document.querySelectorAll('[data-tab-button]')) b.addEventListener('click', () => switchTab(b.dataset.tabButton));
