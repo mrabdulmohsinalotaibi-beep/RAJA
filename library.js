@@ -71,29 +71,54 @@ async function removeLocal(id){
   });
 }
 const uid=()=>crypto.randomUUID?.()||Date.now()+'-'+Math.random();
-async function saveFile(file){
+async function saveFile(file,fingerprint=null){
   if(!file?.size) throw Error('الملف فارغ');
   if(file.size>MAX) throw Error('حجم الملف يتجاوز 400 ميجابايت؛ احفظه في ملفات جهازك مباشرة.');
   const mime=mediaMime(file);
-  const item={id:uid(),type:'file',name:file.name||'media',mime,size:file.size,at:Date.now()};
+  const item={id:uid(),type:'file',name:file.name||'media',mime,size:file.size,fingerprint,at:Date.now()};
   // Store a media Blob rather than the file-provider's File wrapper (notably on iOS).
   const blob=new Blob([file],{type:mime||file.type});
   await write(item,blob);
   return item;
 }
-async function importFiles(files,{onProgress}={}){
-  const items=[],errors=[];
-  for(const file of files){
-    if(!mediaMime(file)){errors.push(file.name+': صيغة الملف غير مدعومة.');continue}
-    const message='جارٍ حفظ '+file.name+' على هذا الجهاز...';say(message);onProgress?.(message);
-    try{items.push(await saveFile(file))}catch(error){errors.push(file.name+': '+importError(error))}
-  }
-  const message=(items.length?'تم حفظ '+items.length+' من الملفات داخل مكتبتك المحلية. ':'')+errors.join(' ');
-  say(message||'لم يتم اختيار ملفات.',!!errors.length);
-  await refresh();
-  if(items.length)window.dispatchEvent(new Event('raja-library-change'));
-  return {items,errors};
+let importQueue=Promise.resolve();
+function serializeImport(fn){const job=importQueue.then(fn);importQueue=job.catch(()=>{});return job}
+function duplicateChoice(file,existing,context){
+ if(context.decision)return Promise.resolve(context.decision);
+ return new Promise(resolve=>{
+  const dialog=$('duplicateDialog');$('duplicateDescription').textContent='«'+file.name+'» مطابق بالمحتوى للملف «'+existing.name+'» الموجود في مكتبتك، حتى لو اختلف الاسم.';$('duplicateApplyAll').checked=false;
+  const finish=value=>{if($('duplicateApplyAll').checked)context.decision=value;dialog.oncancel=dialog.onclose=null;$('duplicateSkip').onclick=$('duplicateAdd').onclick=null;dialog.close();resolve(value)};
+  $('duplicateSkip').onclick=()=>finish('skip');$('duplicateAdd').onclick=()=>finish('add');dialog.oncancel=e=>{e.preventDefault();finish('skip')};dialog.onclose=()=>finish('skip');dialog.showModal();$('duplicateSkip').focus();
+ });
 }
+async function checkedFile(file,context){
+ if(!file?.size)throw Error('الملف فارغ');if(file.size>MAX)throw Error('حجم الملف يتجاوز 400 ميجابايت.');
+ const fingerprint=await window.rajaFileFingerprint(file,(done,total)=>{const message='فحص محتوى '+file.name+' · '+Math.round(done/total*100)+'٪';context.onProgress?.(message)});
+ context.candidates||=await localItems();let duplicate=null;
+ for(const item of context.candidates.filter(i=>i.type==='file'&&i.size===file.size)){
+  if(!item.fingerprint?.startsWith('raja-content-v1:')){
+   const blob=await getBlob(item.id);if(!blob)continue;item.fingerprint=await window.rajaFileFingerprint(blob);try{await write(item)}catch{}
+  }
+  if(item.fingerprint===fingerprint){duplicate=item;break}
+ }
+ if(duplicate&&await duplicateChoice(file,duplicate,context)==='skip')return null;
+ const item=await saveFile(file,fingerprint);context.candidates.push(item);return item;
+}
+function importFiles(files,{onProgress}={}){
+ return serializeImport(async()=>{
+  const items=[],errors=[],context={onProgress};let skipped=0;
+  for(const file of files){
+   if(!mediaMime(file)){errors.push(file.name+': صيغة الملف غير مدعومة.');continue}
+   const message='جارٍ فحص وحفظ '+file.name+' على هذا الجهاز...';say(message);onProgress?.(message);
+   try{const item=await checkedFile(file,context);if(item)items.push(item);else skipped++}catch(error){errors.push(file.name+': '+importError(error))}
+  }
+  const message=(items.length?'تم حفظ '+items.length+' من الملفات داخل مكتبتك المحلية. ':'')+(skipped?'تم تخطي '+skipped+' ملفات مكررة. ':'')+errors.join(' ');
+  say(message||'لم يتم اختيار ملفات جديدة.',!!errors.length);await refresh();if(items.length)window.dispatchEvent(new Event('raja-library-change'));
+  return {items,errors,skipped,message};
+ });
+}
+async function saveChecked(file){return serializeImport(()=>checkedFile(file,{}))}
+
 function button(label,callback,danger=false){
   const b=document.createElement('button');b.type='button';b.className='lib-btn'+(danger?' danger':'');b.textContent=label;
   b.addEventListener('click',async()=>{b.disabled=true;try{await callback();}catch(e){say(e.message||'تعذرت العملية',true);}finally{b.disabled=false;}});
@@ -173,7 +198,8 @@ async function saveCurrent(){
       if(blob.size>MAX)throw Error('حجم الملف أكبر من 400 ميجابايت.');
       let name=decodeURIComponent(u.pathname.split('/').pop()||'media');
       name=name.replace(/[\\/:*?"<>|]/g,'_').slice(0,150);
-      await saveFile(new File([blob],name,{type:mime}));
+      const saved=await saveChecked(new File([blob],name,{type:mime}));
+      if(!saved){say('تم تخطي الملف المكرر.');return}
       say('نجح تنزيل الملف وحفظه في المكتبة المحلية. يمكنك تشغيله أو نقله إلى مجلد الملفات.');
     }
     await refresh();
@@ -188,7 +214,7 @@ for(const id of ['localImport','file']){
     try{
       const result=await importFiles([...picker.files]);
       if(id==='file'){
-        $('notice').textContent=result.errors.join(' ')||'تم حفظ الملف في «ملفاتي».';
+        $('notice').textContent=result.message;
         if(result.items[0])await showItem(result.items[0]);
       }
     }catch(error){say(importError(error),true);if(id==='file')$('notice').textContent=importError(error)}
@@ -296,7 +322,8 @@ window.rajaLibrarySaveYouTubeMedia=async function({videoId,kind,format,quality})
       if(blob.size>LOCAL_YOUTUBE_LIMIT)throw Error('الملف أكبر من مساحة الحفظ الداخلي المسموحة.');
     }
     if(!blob.size)throw Error('لم تصل بيانات الفيديو.');
-    await saveFile(new File([blob],filename,{type:mime}));
+    const saved=await saveChecked(new File([blob],filename,{type:mime}));
+    if(!saved){setProgress('done');announce('تم تخطي الملف المكرر؛ نسختك السابقة محفوظة في ملفاتي.');return true}
     await refresh();
     window.dispatchEvent(new Event('raja-library-change'));
     setProgress('done');
