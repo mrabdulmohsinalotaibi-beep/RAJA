@@ -1,0 +1,30 @@
+name: YouTube live media diagnostics
+on:
+  pull_request:
+    paths: ['tests/youtube-live-probe.mjs', '.github/workflows/youtube-live-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save youtubei.js@latest
+      - run: node tests/youtube-live-probe.mjs
+      - name: Check current yt-dlp without credentials
+        run: |
+          python3 -m pip install -U 'yt-dlp[default]' bgutil-ytdlp-pot-provider
+          timeout 70 python3 -m yt_dlp --no-playlist --socket-timeout 10 --retries 0 --js-runtimes node --simulate --print '%(id)s %(duration)s %(format_id)s' https://www.youtube.com/watch?v=aqz-KE-bpKQ || true
+      - name: Check maintained automatic PO token provider
+        run: |
+          git clone --depth 1 --branch 2.0.2 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /tmp/raja-pot
+          npm ci --prefix /tmp/raja-pot/server
+          cd /tmp/raja-pot/server
+          npx tsc
+          cd "$GITHUB_WORKSPACE"
+          timeout 90 python3 -m yt_dlp --no-playlist --socket-timeout 10 --retries 0 --js-runtimes node --extractor-args 'youtube:player_client=mweb,web_safari,android_vr' --extractor-args 'youtubepot-bgutilscript:server_home=/tmp/raja-pot/server' --simulate --print '%(id)s %(duration)s %(format_id)s' https://www.youtube.com/watch?v=aqz-KE-bpKQ || true
