@@ -7,7 +7,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
   const testUser={id:'account-test-only',name:'UI Tester',email:'tester@example.invalid',emailVerified:false};
   await page.route('**/api/auth/me',r=>r.fulfill({json:{configured:true,guestAllowed:true,user,methods:{password:true,google:false,email:false,sms:false}}}));
   await page.route('**/api/organizer',r=>r.fulfill({status:503,json:{ok:false}}));
-  await page.route('**/api/auth/register',r=>{const body=r.request().postDataJSON();assert.equal(body.email,testUser.email);assert.equal(body.name,testUser.name);return r.fulfill({json:{ok:true,user:testUser,recoveryCode:'T'.repeat(32)}})});
+  await page.route('**/api/auth/register',r=>{const body=r.request().postDataJSON();assert.equal(body.identity,testUser.email);assert.equal(body.name,testUser.name);return r.fulfill({json:{ok:true,user:testUser,recoveryCode:'T'.repeat(32)}})});
   await page.route('**/api/auth/password-login',r=>{const body=r.request().postDataJSON();if(body.password==='wrong-password')return r.fulfill({status:401,json:{ok:false,message:'البريد الإلكتروني أو كلمة المرور غير صحيحة.'}});user=testUser;return r.fulfill({json:{ok:true,user}})});
   await page.route('**/api/auth/logout',r=>{user=null;return r.fulfill({json:{ok:true}})});
   await page.route('**/api/auth/reset-password',r=>r.fulfill({json:{ok:true,user:testUser,recoveryCode:'R'.repeat(32)}}));

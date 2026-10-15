@@ -24,7 +24,7 @@ $('passwordAuthForm').onsubmit=async e=>{
  e.preventDefault();if(mode!=='login'&&$('passwordEntry').value!==$('passwordConfirm').value)return message('كلمتا المرور غير متطابقتين.',true);
  const button=$('passwordAuthSubmit');button.disabled=true;message('جارٍ إكمال الطلب...');
  try{
-  const body={email:$('passwordEmail').value.trim(),password:$('passwordEntry').value};
+  const body={identity:$('passwordEmail').value.trim(),password:$('passwordEntry').value};
   if(mode==='register')body.name=$('passwordName').value.trim();if(mode==='reset')body.recoveryCode=$('passwordRecoveryInput').value.trim();
   const endpoint=mode==='register'?'register':mode==='reset'?'reset-password':'password-login';
   const response=await fetch('/api/auth/'+endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -38,7 +38,7 @@ $('passwordAuthForm').onsubmit=async e=>{
 };
 $('passwordContinue').onclick=()=>location.replace('/');
 $('passwordSaveRecovery').onclick=()=>{
- const text='رَجْع — رمز استعادة الحساب\nالبريد: '+$('passwordEmail').value.trim()+'\nالرمز: '+$('passwordRecoveryCode').value+'\nاحتفظ به في مكان آمن. لا تشاركه مع الآخرين.\n';
+ const text='رَجْع — رمز استعادة الحساب\nالجوال أو البريد: '+$('passwordEmail').value.trim()+'\nالرمز: '+$('passwordRecoveryCode').value+'\nاحتفظ به في مكان آمن. لا تشاركه مع الآخرين.\n';
  const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='raja-account-recovery.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
  message('أُرسل ملف رمز الاستعادة إلى تنزيلات جهازك.');
 };

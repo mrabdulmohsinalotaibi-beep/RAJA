@@ -1,3 +1,4 @@
+import {normalizeContact} from './contact-auth.js';
 import {json,seal,base64url,unbase64url,randomToken,cookie,SESSION_COOKIE} from './google-auth.js';
 import {passwordConfigured} from './auth-config.js';
 const encoder=new TextEncoder();
@@ -52,12 +53,13 @@ export async function passwordRequest(request,env,action){
   while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>4096){await reader.cancel();return {response:json({ok:false,message:'حجم الطلب كبير.'},413)}}chunks.push(value)}
   const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}body=JSON.parse(new TextDecoder().decode(bytes));
  }catch{return {response:json({ok:false,message:'بيانات الطلب غير صالحة.'},400)}}
- const email=emailAddress(body?.email);
- if(!email||typeof body.password!=='string'||body.password.length<1||body.password.length>128)return {response:json({ok:false,message:'أدخل بريدك وكلمة المرور بشكل صحيح.'},400)};
+ const raw=body?.identity??body?.email??body?.phone;
+ const email=emailAddress(raw),phone=email?null:normalizeContact('sms',raw),identity=email||phone;
+ if(!identity||typeof body.password!=='string'||body.password.length<1||body.password.length>128)return {response:json({ok:false,message:'أدخل رقم جوالك أو بريدك وكلمة المرور بشكل صحيح.'},400)};
  if(action!=='login'&&!validPassword(body.password))return {response:json({ok:false,message:'استخدم كلمة مرور من 12 إلى 128 حرفًا.'},400)};
- try{if(!await rateLimit(env,request,email,action))return {response:json({ok:false,message:'محاولات كثيرة. انتظر عشر دقائق ثم أعد المحاولة.'},429)}}
+ try{if(!await rateLimit(env,request,identity,action))return {response:json({ok:false,message:'محاولات كثيرة. انتظر عشر دقائق ثم أعد المحاولة.'},429)}}
  catch{return {response:json({ok:false,message:'خدمة الحسابات غير متاحة الآن.'},503)}}
- return {body,email};
+ return {body,email,phone,identity};
 }
 export async function accountSession(row,env,extra={}){
  const control=await env.RAJA_DB.prepare('SELECT suspended FROM raja_user_controls WHERE user_id=?').bind(row.id).first();if(control?.suspended)throw Error('account-disabled');
@@ -65,8 +67,8 @@ export async function accountSession(row,env,extra={}){
  await env.RAJA_DB.prepare('DELETE FROM raja_password_sessions WHERE session_id IN (SELECT session_id FROM raja_password_sessions WHERE expires_at<=? LIMIT 100)').bind(now).run();
  const result=await env.RAJA_DB.prepare('INSERT INTO raja_password_sessions (session_id, user_id, credential_version, expires_at) SELECT ?, id, credential_version, ? FROM raja_accounts WHERE id = ? AND credential_version = ?').bind(sid,expires,row.id,row.credential_version).run();
  if((result.meta?.changes||0)!==1)throw Error('credentials-changed');
- const payload={iss:'raja-password',sub:row.id,email:row.email,name:row.name,sid,iat:now,exp:expires};
+ const payload={iss:'raja-password',sub:row.id,email:row.phone?'':row.email,phone:row.phone||'',name:row.name,sid,iat:now,exp:expires};
  const token=await seal(payload,env.RAJA_SESSION_SECRET);
- const response=json({ok:true,user:{id:row.id,email:row.email,name:row.name,emailVerified:false},...extra});
+ const response=json({ok:true,user:{id:row.id,email:row.phone?'':row.email,phone:row.phone||'',name:row.name,emailVerified:false,phoneVerified:false},...extra});
  response.headers.append('Set-Cookie',cookie(SESSION_COOKIE,token,7*86400));return response;
 }

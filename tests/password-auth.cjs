@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {DatabaseSync}=require('node:sqlite');
 (async()=>{
  const db=new DatabaseSync(':memory:');
- for(const path of ['0002-contact-auth.sql','0003-password-accounts.sql','0005-site-admin.sql'])db.exec(fs.readFileSync(require.resolve('../migrations/'+path),'utf8'));
+ for(const path of ['0002-contact-auth.sql','0003-password-accounts.sql','0005-site-admin.sql','0006-phone-accounts.sql'])db.exec(fs.readFileSync(require.resolve('../migrations/'+path),'utf8'));
  const binding={prepare(sql){let values=[];const stmt={bind(...v){values=v;return stmt},async first(){return db.prepare(sql).get(...values)||null},async run(){const r=db.prepare(sql).run(...values);return {meta:{changes:Number(r.changes)}}}};return stmt}};
  const env={RAJA_DB:binding,RAJA_SESSION_SECRET:'unit-test-only-not-a-real-session-secret-123456',RAJA_PASSWORD_LOGIN:'true'};
  const {onRequestPost:register}=await import('../functions/api/auth/register.js');
@@ -45,5 +45,18 @@ const {DatabaseSync}=require('node:sqlite');
  const a=await hashPassword(secret,env),b=await hashPassword(secret,env);assert.notEqual(a.salt,b.salt);assert.notEqual(a.hash,b.hash);
  for(let i=0;i<10;i++){r=await login({request:request({email:'limits@example.invalid',password:secret},{ip:'192.0.2.55'}),env});assert.equal(r.status,401)}
  r=await login({request:request({email:'limits@example.invalid',password:secret},{ip:'192.0.2.55'}),env});assert.equal(r.status,429);
+
+ // Phone credentials share the account protections without granting admin privileges.
+ const phoneRequest=(body)=>request(body,{ip:'192.0.2.88'});
+ r=await register({request:phoneRequest({name:'Phone user',identity:'٠٥٠٠٠٠٠٠٠٤',password:secret,role:'owner'}),env});assert.equal(r.status,200);const phoneCreated=await r.json(),phoneCookie=cookie(r);assert.equal(phoneCreated.user.phone,'+966500000004');assert.equal(phoneCreated.user.email,'');assert.equal(phoneCreated.user.phoneVerified,false);assert.equal(phoneCreated.user.role,undefined);
+ let phoneUser=await currentUser(get(phoneCookie),env);assert.equal(phoneUser.phone,'+966500000004');assert.equal(phoneUser.email,'');
+ const {currentAdmin}=await import('../functions/_lib/admin-auth.js');assert.equal(await currentAdmin(get(phoneCookie),env),null);
+ r=await register({request:phoneRequest({name:'Duplicate phone',identity:'+966500000004',password:secret}),env});assert.equal(r.status,409);
+ r=await register({request:request({name:'Another phone',phone:'0500000005',password:secret},{ip:'192.0.2.89'}),env});assert.equal(r.status,200);assert.equal((await r.json()).user.phone,'+966500000005');
+ r=await login({request:phoneRequest({identity:'00966500000004',password:secret}),env});assert.equal(r.status,200);
+ r=await reset({request:phoneRequest({identity:'0500000004',password:newSecret,recoveryCode:phoneCreated.recoveryCode}),env});assert.equal(r.status,200);assert.equal(await currentUser(get(phoneCookie),env),null);
+ r=await login({request:phoneRequest({identity:'0500000004',password:newSecret}),env});assert.equal(r.status,200);const latestPhoneCookie=cookie(r);assert.equal((await currentUser(get(latestPhoneCookie),env)).id,phoneCreated.user.id);
+ db.prepare('INSERT INTO raja_user_controls(user_id,suspended,updated_at) VALUES(?,1,?)').run(phoneCreated.user.id,Math.floor(Date.now()/1000));assert.equal(await currentUser(get(latestPhoneCookie),env),null);assert.equal((await login({request:phoneRequest({identity:'0500000004',password:newSecret}),env})).status,403);
+ console.log('PASS phone registration, Arabic/local/international normalization, duplicate prevention, multiple phones, session restore, recovery rotation, suspension and no admin escalation');
  db.close();console.log('PASS email registration, salted/peppered password hashes, secure sessions, duplicate accounts, generic login errors, recovery rotation, session revocation, logout, expiry, guest preservation, private API protection and rate limits');
 })().catch(e=>{console.error(e);process.exitCode=1});
