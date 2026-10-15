@@ -311,10 +311,16 @@ function stop(persist=true){
  if(persist)save();
 }
 function pause(){if(active)active.wantPlaying=false;if(media){if(!media.paused)media.pause()}else yt?.pauseVideo()}
+async function playMedia(player){
+ const a=active;if(!a)return;const request=(a.playRequest||0)+1;a.playRequest=request;a.pendingPlay=request;a.wantPlaying=true;
+ try{await player.play();if(active===a&&a.pendingPlay===request&&a.wantPlaying===false)player.pause()}
+ catch(e){if(active===a&&a.pendingPlay===request&&a.wantPlaying!==false&&e?.name!=='AbortError')throw e}
+ finally{if(a.pendingPlay===request)a.pendingPlay=null}
+}
 async function resume(){
  if(!active)return;active.wantPlaying=true;if(transition)return;
  if(active.done)return start(active.list,active.plan?{partIndex:active.partIndex}:{itemId:active.item.id,at:0});
- try{if(media){activateAudioSession();await media.play()}else yt?.playVideo()}catch{tell('اضغط تشغيل داخل المشغل للمتابعة.',true)}
+ try{if(media){activateAudioSession();await playMedia(media)}else yt?.playVideo()}catch{tell('اضغط تشغيل داخل المشغل للمتابعة.',true)}
 }
 function installSession(item){
  if(!navigator.mediaSession)return;
@@ -349,7 +355,7 @@ async function repeatPart(a){
  transition=true;checkpoints[a.list.id]={...old,itemId:target.id,position:target.offset,duration:a.plan.sources.find(s=>s.id===target.id).duration,done:false,partKey:a.plan.key,partIndex:a.partIndex,partPosition:0,repeatMode:repeatMode(a.list),repeatIteration:a.repeatIteration};a.list.cursor={id:target.id,offset:target.offset};save(false);
  tell('إعادة الجزء '+(a.partIndex+1)+' · التكرار '+a.repeatIteration+(repeatMode(a.list)===-1?' المستمر':' من '+repeatMode(a.list)));
  try{
-  if(media&&a.item.id===target.id){media.currentTime=target.offset;transition=false;installSession(item);activateAudioSession();await media.play();save(false)}
+  if(media&&a.item.id===target.id){media.currentTime=target.offset;transition=false;installSession(item);activateAudioSession();await playMedia(media);save(false)}
   else await openItem(item,0,target.offset);
  }catch(e){if(active===a)fail(e)}
 }
@@ -424,12 +430,13 @@ async function openItem(item,offset,playFrom=offset,autoplay=true){
    if(token!==generation)return;
    if(!Number.isFinite(player.duration)||player.duration<=0){fail(Error('اختر ملفًا محدد المدة، وليس بثًا مباشرًا.'));return}
    player.currentTime=Math.min(playFrom,player.duration);active.lastPosition=player.currentTime;transition=false;save(false);
-   if(autoplay&&active.wantPlaying!==false)void player.play().catch(()=>tell('اضغط زر التشغيل داخل المشغل؛ المتصفح يحتاج لمسة لبدء الصوت.'));
+   if(autoplay&&active.wantPlaying!==false)void playMedia(player).catch(()=>tell('اضغط زر التشغيل داخل المشغل؛ المتصفح يحتاج لمسة لبدء الصوت.'));
   };
   player.ontimeupdate=()=>tick();player.onended=()=>{if(player.ended||player.currentTime>=player.duration-.025)tick(true)};
   player.onseeking=player.onseeked=()=>{if(active&&token===generation)active.lastPosition=player.currentTime};
   player.onerror=()=>{if(token===generation)fail(Error('صيغة الملف أو رابط الدرس غير قابل للتشغيل.'))};
   player.onplay=()=>{
+   if(active?.pendingPlay&&active.wantPlaying===false){player.pause();return}
    if(active)active.wantPlaying=true;
    $('lessonPause').textContent='إيقاف مؤقت';
    if(active?.done)void start(active.list,active.plan?{partIndex:active.partIndex}:{replay:true});else activateAudioSession(true);
