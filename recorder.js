@@ -17,6 +17,7 @@ $('recorderForward10').onclick=()=>window.rajaLessons?.seekBy(10);
 $('recorderPrevious').onclick=()=>void window.rajaLessons?.step(-1);
 $('recorderNext').onclick=()=>void window.rajaLessons?.step(1);
 $('recorderSeek').oninput=e=>window.rajaLessons?.seek(Number(e.target.value));
+$('recorderRepeat').onchange=e=>window.rajaLessons?.setRepeat(e.target.value);
 $('recorderList').onchange=e=>window.rajaLessons?.selectList(e.target.value);
 $('lessonNewList').onclick=()=>{window.rajaSwitchTab('organizer');if($('lessonCreatePanel'))$('lessonCreatePanel').open=true;$('lessonCreate').scrollIntoView({block:'nearest',behavior:'smooth'});$('lessonName').focus()};
 let wasPlaying=null,listSignature='';
@@ -32,6 +33,8 @@ function refresh(){
   $('recorderList').value=state.listId||'';$('recorderList').disabled=options.length<2;
   $('recorderTitle').textContent=state.title;
   $('recorderSubtitle').textContent=state.done?(state.segmented?'اكتمل الجزء · أعده أو انتقل للتالي':'اكتملت القائمة · يمكنك اختيار أي مقطع'):state.resumable?'جاهز للمتابعة · توقفت عند '+format(state.position):state.count?(state.segmented?'الجزء ':'المقطع ')+num.format(state.index)+' من '+num.format(state.count)+' · '+(state.playing?'تستمع الآن':'توقفت عند '+format(state.position)):'أضف دروسك من شاشة القوائم';
+  $('recorderRepeat').value=String(state.repeatMode||0);$('recorderRepeat').disabled=!state.segmented;
+  if(state.segmented&&state.repeatMode)$('recorderSubtitle').textContent+=' · التكرار '+num.format(state.repeatIteration)+(state.repeatMode===-1?' المستمر':' من '+num.format(state.repeatMode));
   $('recorderIndex').textContent=state.count?(state.segmented?'الجزء ':'المقطع ')+num.format(state.index)+' من '+num.format(state.count):'مكتبتك الصوتية';
   $('recorderMode').textContent=state.segmented?'أجزاء متصلة':'مفتوح · متسلسل';
   $('recorderTargetLabel').textContent=state.segmented?'مدة الجزء':'الهدف اليومي';$('recorderTimeLabel').textContent=state.segmented?'مدة القائمة':'تجدد الإحصاء';
