@@ -1,6 +1,6 @@
 // Opt-in live diagnostics. Does not use accounts/cookies or retain media.
 import { Innertube, Platform } from 'youtubei.js';
-const id='BaW_jenozKc';
+const id='aqz-KE-bpKQ';
 const log=(source,result)=>console.log(JSON.stringify({source,...result}));
 async function json(url,timeout=12000){const r=await fetch(url,{signal:AbortSignal.timeout(timeout)});if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
 async function media(url){const r=await fetch(url,{headers:{Range:'bytes=0-1023'},signal:AbortSignal.timeout(12000)});const mime=r.headers.get('content-type');const reader=r.body?.getReader();const first=await reader?.read();await reader?.cancel();return {status:r.status,mime,bytes:first?.value?.length||0,playable:r.ok&&/^(audio|video)\//.test(mime||'')&&!!first?.value?.length}}
