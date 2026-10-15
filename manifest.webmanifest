@@ -11,13 +11,13 @@
   "theme_color": "#efebe3",
   "icons": [
     {
-      "src": "/icon.svg?v=21",
+      "src": "/icon.svg?v=22",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/assets/raja-logo.jpeg?v=21",
+      "src": "/assets/raja-logo.jpeg?v=22",
       "sizes": "1536x1536",
       "type": "image/jpeg",
       "purpose": "any"
