@@ -422,7 +422,7 @@ $('lessonCreate').onsubmit=async e=>{
  if(!name||!Number.isInteger(minutes)||minutes<0||minutes>720||!/^\d{2}:\d{2}$/.test(start))return;
  if(lists.length>=50)return tell('الحد الأقصى 50 قائمة دروس.',true);
  if(($('lessonFiles')?.files?.length||0)>500)return tell('الحد الأقصى 500 مقطع لكل قائمة.',true);
- const created={id:uid(),name,minutes:minutes||30,goalMinutes:minutes,start,items:[],cursor:null,day:null};lists.push(created);
+ const created={id:uid(),name,minutes:minutes||30,goalMinutes:minutes,openListeningVersion:23,start,items:[],cursor:null,day:null};lists.push(created);
  if(!active){selectedId=created.id;try{localStorage.setItem(scope+':selected',selectedId)}catch{}}
  if(save()){
   const chosen=[...($('lessonFiles')?.files||[])];$('lessonName').value='';render();

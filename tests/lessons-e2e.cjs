@@ -41,9 +41,11 @@ function wav(seconds){const b=Buffer.alloc(44+8000*seconds*2);b.write('RIFF');b.
   await page.reload();await page.waitForFunction(()=>window.rajaLessons?.state()?.resumable);assert.equal(await page.evaluate(()=>window.rajaLessons.state().position),8);
   await page.evaluate(()=>{window.lessonTestNow+=86400000});assert.equal(await page.evaluate(()=>window.rajaLessons.state().position),8);assert.equal(await page.evaluate(()=>window.rajaLessons.state().elapsed),0);
   await page.locator('#recorderPlay').click();await page.waitForFunction(()=>document.querySelector('#lessonAudio').currentTime>=8&&!document.querySelector('#lessonAudio').paused);await page.evaluate(()=>{window.rajaLessons.seek(8);window.rajaLessons.stop()});
+  // Leave the app first so its pagehide save cannot overwrite the legacy fixture.
+  await page.goto('http://127.0.0.1:8766/tests/fixtures/');
   // Migrating an old hard-limited checkpoint retains its exact position and switches to open mode.
   await page.evaluate(()=>{const key='raja-lessons-v1-local',lists=JSON.parse(localStorage.getItem(key)),l=lists[0];delete l.goalMinutes;delete l.openListeningVersion;l.minutes=1;l.day.key='2026-10-13';l.day.furthest=60;delete l.day.listened;localStorage.setItem(key,JSON.stringify(lists));const c=JSON.parse(localStorage.getItem(key+':positions'));c[l.id].dayKey='2026-10-13';c[l.id].done=true;localStorage.setItem(key+':positions',JSON.stringify(c))});
-  await page.reload();await page.waitForFunction(()=>window.rajaLessons?.state()?.resumable);assert.equal(await page.evaluate(()=>window.rajaLessons.state().position),8);assert.equal(await page.evaluate(()=>window.rajaLessons.state().minutes),0);
+  await page.goto('http://127.0.0.1:8766');await page.waitForFunction(()=>window.rajaLessons?.state()?.resumable);assert.equal(await page.evaluate(()=>window.rajaLessons.state().position),8);assert.equal(await page.evaluate(()=>window.rajaLessons.state().minutes),0);
   assert.deepEqual(errors,[]);console.log('PASS bulk creation, natural order, pointer and keyboard reorder, arbitrary next/previous/seek, goal exceeded without pause, completion badges, exact cross-day resume and legacy checkpoint migration');
  }finally{await browser?.close();server.kill()}
 })().catch(e=>{console.error(e);process.exitCode=1});
