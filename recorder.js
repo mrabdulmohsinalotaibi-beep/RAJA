@@ -18,7 +18,7 @@ $('recorderPrevious').onclick=()=>void window.rajaLessons?.step(-1);
 $('recorderNext').onclick=()=>void window.rajaLessons?.step(1);
 $('recorderSeek').oninput=e=>window.rajaLessons?.seek(Number(e.target.value));
 $('recorderList').onchange=e=>window.rajaLessons?.selectList(e.target.value);
-$('lessonNewList').onclick=()=>{window.rajaSwitchTab('organizer');$('lessonCreate').scrollIntoView({block:'nearest',behavior:'smooth'});$('lessonName').focus()};
+$('lessonNewList').onclick=()=>{window.rajaSwitchTab('organizer');if($('lessonCreatePanel'))$('lessonCreatePanel').open=true;$('lessonCreate').scrollIntoView({block:'nearest',behavior:'smooth'});$('lessonName').focus()};
 let wasPlaying=null,listSignature='';
 function refresh(){
  const state=window.rajaLessons?.state()||{name:'كل صوتٍ له رَجْع',title:'ابدأ رحلة الاستماع',index:0,count:0,minutes:30,start:'05:00',position:0,duration:0,elapsed:0,playing:false,picture:false,active:false,done:false};
@@ -31,11 +31,15 @@ function refresh(){
   }
   $('recorderList').value=state.listId||'';$('recorderList').disabled=options.length<2;
   $('recorderTitle').textContent=state.title;
-  $('recorderSubtitle').textContent=state.done?'اكتملت الحصة · يمكنك إعادتها':state.resumable?'جاهز للمتابعة من '+format(state.position):state.count?'استماع متسلسل · حصة اليوم':'أضف دروسك من شاشة القوائم';
-  $('recorderIndex').textContent=state.count?num.format(state.index)+' من '+num.format(state.count):'مكتبتك اليومية';
-  $('recorderDaily').textContent=num.format(state.minutes)+' دقيقة';
+  $('recorderSubtitle').textContent=state.done?'اكتملت القائمة · يمكنك اختيار أي مقطع':state.resumable?'جاهز للمتابعة · توقفت عند '+format(state.position):state.count?'المقطع '+num.format(state.index)+' من '+num.format(state.count)+' · '+(state.playing?'تستمع الآن':'توقفت عند '+format(state.position)):'أضف دروسك من شاشة القوائم';
+  $('recorderIndex').textContent=state.count?'المقطع '+num.format(state.index)+' من '+num.format(state.count):'مكتبتك الصوتية';
+  $('recorderDaily').textContent=state.minutes?num.format(state.minutes)+' دقيقة':'استماع مفتوح';
+  $('recorderPlayLabel').textContent=state.playing?'إيقاف مؤقت':state.done?'إعادة المقطع':state.position>0?'كمّل من حيث توقفت':'ابدأ الاستماع';
+  $('recorderGoal').hidden=!state.minutes;
+  $('recorderGoalText').textContent=state.goalReached?'أكملت هدف اليوم ✓ · واصل بحرية':'هدف اليوم · '+format(state.elapsed)+' / '+format(state.minutes*60);
+  $('recorderGoalProgress').value=state.minutes?Math.min(100,state.elapsed/(state.minutes*60)*100):0;
   const [h,m]=state.start.split(':').map(Number);$('recorderDayStart').textContent='\u2066'+num.format(h%12||12)+':'+num.format(m).padStart(2,'٠')+'\u2069'+(h>=12?' مساءً':' صباحًا');
-  $('recorderElapsed').textContent=format(state.elapsed);$('recorderDuration').textContent=format(state.minutes*60);
+  $('recorderElapsed').textContent=format(state.position);$('recorderDuration').textContent=format(state.duration);
   $('recorderSeek').max=Number.isFinite(state.duration)&&state.duration>0?state.duration:1;
   $('recorderSeek').value=state.position;$('recorderSeek').style.setProperty('--progress',Math.min(100,Math.max(0,state.position/Number($('recorderSeek').max)*100))+'%');$('recorderSeek').disabled=!state.active||state.done;
   $('recorderMedia').classList.toggle('has-picture',state.picture);
@@ -55,16 +59,16 @@ setInterval(refresh,300);refresh();
 $('copyrightYear').textContent=num.format(new Date().getFullYear());
 const legal={
  privacy:{title:'الخصوصية',paragraphs:[
- 'بعد تسجيل الدخول تُرفع ملفاتك الصوتية والفيديو إلى تخزين حسابك الخاص، وتُزامن القوائم وتقدم الاستماع بين أجهزتك. ملفات الضيف والنسخ دون إنترنت محفوظة على الجهاز. حذف ملف من الحساب ينعكس على الأجهزة المتزامنة. احتفظ بنسخة مستقلة من ملفاتك المهمة.',
+ 'تُحفظ ملفاتك وقوائمك ومواضع استماعك على هذا الجهاز فقط، ولا تُرفع تلقائيًا ولا تتزامن مع الأجهزة الأخرى. احتفظ بنسخة مستقلة من ملفاتك المهمة.',
  'يمكن إنشاء حساب رَجْع بالبريد وكلمة مرور خاصة بالتطبيق. لا نطلب كلمة مرور صندوق بريدك ولا نتحقق من ملكية البريد برسالة حاليًا. كلمات المرور تُحفظ كبصمات مشتقة وليست نصًا مقروءًا.',
- 'تستخدم جلسة الحساب ملفات ارتباط آمنة. تحفظ بيانات الحساب وبصمات كلمة المرور ورمز الاستعادة في قاعدة بيانات رَجْع.  قد تُحفظ مفضلة YouTube وقوائمه في حسابك عند تفعيل مزامنتها؛ ملفات الوسائط نفسها لا تتزامن.',
+ 'تستخدم جلسة الحساب ملفات ارتباط آمنة. تحفظ بيانات الحساب وبصمات كلمة المرور ورمز الاستعادة في قاعدة بيانات رَجْع.  تُحفظ مفضلة YouTube وقوائمه على هذا الجهاز فقط.',
  'عند إضافة رابط خارجي أو تشغيل YouTube، يتصل الجهاز بمصدر المحتوى وتطبق سياسة ذلك المصدر. تجهيز التنزيل قد يمر بخادم معالجة مؤقت.'
  ]},
  terms:{title:'شروط الاستخدام',paragraphs:[
  'رَجْع أداة لتنظيم الدروس والمقاطع والاستماع إليها. استخدم ملفاتك والمحتوى الذي يسمح صاحبه باستخدامه وتنزيله.',
  'يبقى حق المحتوى لأصحابه. يخص اسم Abdulmo7sin حقوق تصميم التطبيق وتطويره، ولا يعني امتلاك المقاطع المضافة.',
  'يتوقف توفر تشغيل أو تنزيل رابط خارجي على المصدر. التشغيل مع قفل الشاشة يعتمد على دعم الجهاز والمتصفح، ويتوقف عند إغلاق التطبيق بالقوة.',
- 'بداية اليوم تنظّم الحصة اليومية ولا تشغّل الصوت تلقائيًا. بيانات الدروس محلية؛ احتفظ بنسخة احتياطية من الملفات المهمة.'
+ 'بداية اليوم تنظّم عدّاد الهدف الاختياري ولا تشغّل الصوت تلقائيًا. بيانات الدروس محلية؛ احتفظ بنسخة احتياطية من الملفات المهمة.'
  ]}
 };
 for(const button of document.querySelectorAll('[data-legal]'))button.onclick=()=>{

@@ -9,15 +9,24 @@ let checkpoints={};
 const signature=list=>JSON.stringify([list.minutes,list.start,list.items.map(i=>[i.id,i.type,i.libraryId||i.videoId||i.url||''])]);
 function checkpointFor(list){
  const value=checkpoints[list.id];
- return value&&value.dayKey===core.dayKey(Date.now(),list.start)&&value.signature===signature(list)&&list.items.some(i=>i.id===value.itemId)&&Number.isFinite(value.position)&&value.position>=0&&Number.isFinite(value.spent)&&value.spent>=0&&Number.isFinite(value.offset)&&value.offset>=0?value:null;
+ return value&&list.items.some(i=>i.id===value.itemId)&&Number.isFinite(value.position)&&value.position>=0?value:null;
+}
+function listeningDay(list){
+ const day=core.ensureDay(list);if(!Number.isFinite(day.listened))day.listened=Number(day.furthest)||0;return day;
+}
+const goal=list=>Math.max(0,Number(list.goalMinutes)||0);
+function rememberTrack(list,item,t,d,completed=false){
+ list.progress||={};const old=list.progress[item.id]||{};
+ list.progress[item.id]={position:t,duration:d,completed:completed||!!old.completed};
+ list.cursor={id:item.id,offset:t};
 }
 function selectedList(){return lists.find(l=>l.id===selectedId)||checkpoints[selectedId]?.previewList||lists[0]}
 function capturePosition(){
  if(!active||!media&&!yt||transition)return;
  const a=active,d=duration(),t=position();
  if(!Number.isFinite(t)||!Number.isFinite(d)||d<=0)return;
- const elapsed=Math.min(a.day.minutes*60,a.spent+Math.max(0,t-a.offset));
- const record={listId:a.list.id,itemId:a.item.id,position:t,offset:a.offset,spent:a.spent,elapsed,duration:d,dayKey:a.day.key,signature:signature(a.list),done:a.done,history:a.history,at:Date.now()};
+ const elapsed=listeningDay(a.list).listened;rememberTrack(a.list,a.item,t,d,a.done);
+ const record={listId:a.list.id,itemId:a.item.id,position:t,offset:0,spent:elapsed,elapsed,duration:d,dayKey:a.day.key,signature:signature(a.list),done:a.done,history:a.history,at:Date.now()};
  if(t>=d-0.025&&!a.done){const next=a.list.items[a.list.items.findIndex(i=>i.id===a.item.id)+1];if(next)Object.assign(record,{itemId:next.id,position:0,offset:0,spent:elapsed,duration:0})}
  if(!lists.some(l=>l.id===a.list.id))record.previewList=a.list;
  checkpoints[a.list.id]=record;
@@ -38,13 +47,13 @@ function input(label,type,value){
  const l=document.createElement('label');l.textContent=label;
  const i=document.createElement('input');i.type=type;i.value=value;l.append(i);return {label:l,input:i};
 }
-function resetPlan(list){
- if(active?.list===list)stop();
- list.day=null;list.cursor=null;delete checkpoints[list.id];
-}
 function changeStructure(list,fn){
- if((list.day?.furthest>0||active?.list===list)&&!confirm('تغيير محتويات القائمة أو ترتيبها يعيد خطة الاستماع لهذه القائمة من البداية. متابعة؟'))return;
- resetPlan(list);fn();save();render();
+ if(active?.list===list){tick();save()}
+ fn();
+ if(active?.list===list&&!list.items.some(i=>i.id===active.item.id))stop();
+ if(!checkpointFor(list)){delete checkpoints[list.id];list.cursor=core.first(list)}
+ if(list.progress)for(const id of Object.keys(list.progress))if(!list.items.some(i=>i.id===id))delete list.progress[id];
+ save();render();
 }
 async function reloadLibrary(){
  try{library=await window.rajaLibrary.items();render()}catch(e){tell(e.message,true)}
@@ -80,22 +89,22 @@ async function itemDuration(item){
 }
 function todayEditor(list){
  const form=document.createElement('form');form.className='lesson-form lesson-today-form';form.hidden=true;form.dataset.todayEditor=list.id;
- const heading=document.createElement('h4');heading.textContent='تعديل حصة اليوم';heading.className='wide';
- const note=document.createElement('p');note.className='raja-tip wide';note.textContent='اختر المقطع وموضع البداية. حفظ التعديل يعيد احتساب مدة حصة اليوم من هذا الموضع، دون تغيير ترتيب القائمة. يمكنك التقديم أو الرجوع في أي وقت.';
- const label=document.createElement('label');label.textContent='بداية الحصة من المقطع';label.className='wide';
- const picker=document.createElement('select');picker.setAttribute('aria-label','مقطع بداية حصة اليوم');
+ const heading=document.createElement('h4');heading.textContent='تغيير موضع الاستماع';heading.className='wide';
+ const note=document.createElement('p');note.className='raja-tip wide';note.textContent='اختر أي مقطع والوقت الذي تريد المتابعة منه. يُحفظ الموضع دون تشغيل تلقائي، ولا يتغير هدف اليوم أو ترتيب المقاطع.';
+ const label=document.createElement('label');label.textContent='المقطع';label.className='wide';
+ const picker=document.createElement('select');picker.setAttribute('aria-label','مقطع الاستماع');
  list.items.forEach((item,i)=>{const o=document.createElement('option');o.value=item.id;o.textContent=(i+1)+'. '+item.title;picker.append(o)});label.append(picker);
- const time=input('الموضع في المقطع (دقائق:ثوانٍ أو ساعات:دقائق:ثوانٍ)','text','0:00');time.label.className='wide';time.input.dir='ltr';time.input.inputMode='text';time.input.required=true;time.input.setAttribute('aria-label','موضع بداية حصة اليوم');time.input.placeholder='12:35';
+ const time=input('الموضع في المقطع (دقائق:ثوانٍ أو ساعات:دقائق:ثوانٍ)','text','0:00');time.label.className='wide';time.input.dir='ltr';time.input.inputMode='text';time.input.required=true;time.input.setAttribute('aria-label','موضع الاستماع');time.input.placeholder='12:35';
  const adjust=document.createElement('div');adjust.className='org-actions wide';
  const move=delta=>{const index=list.items.findIndex(i=>i.id===picker.value),item=list.items[index+delta];if(item){picker.value=item.id;time.input.value='0:00';status.textContent=''}};
  adjust.append(button('المقطع السابق',()=>move(-1)),button('المقطع التالي',()=>move(1)));
  adjust.append(button('رجوع 10 ثوانٍ',()=>{time.input.value=fmt(Math.max(0,(parseTime(time.input.value)||0)-10))}),button('تقديم 10 ثوانٍ',()=>{time.input.value=fmt((parseTime(time.input.value)||0)+10)}));
  const status=document.createElement('p');status.className='raja-tip wide';status.setAttribute('role','status');
- const submit=document.createElement('button');submit.type='submit';submit.textContent='حفظ حصة اليوم';
+ const submit=document.createElement('button');submit.type='submit';submit.textContent='حفظ موضع الاستماع';
  const cancel=button('إلغاء',()=>{form.hidden=true});cancel.className+=' wide';
  form.append(heading,note,label,time.label,adjust,status,submit,cancel);
  const open=(itemId=null)=>{
-  const day=core.ensureDay(list);const saved=checkpointFor(list);
+  const day=listeningDay(list);const saved=checkpointFor(list);
   picker.value=itemId||((active?.list===list?active.item.id:saved?.itemId)||day.start.id)||list.items[0]?.id;
   time.input.value=fmt(itemId?0:active?.list===list?position():saved?.position??day.start.offset);
   status.textContent='';form.hidden=false;form.scrollIntoView?.({block:'nearest',behavior:'smooth'});
@@ -109,21 +118,20 @@ function todayEditor(list){
    const measured=await itemDuration(item);
    if(measured&&offset>=measured){status.textContent='اختر وقتًا قبل نهاية المقطع ('+fmt(measured)+').';return}
    if(!lists.includes(list))return;
-   if(signature(list)!==before){status.textContent='تغيّرت القائمة. افتح تعديل الحصة مرة أخرى.';return}
+   if(signature(list)!==before){status.textContent='تغيّرت القائمة. افتح تغيير الموضع مرة أخرى.';return}
    if(active?.list===list)stop();
-   const point={id:item.id,offset};
-   list.day={key:core.dayKey(Date.now(),list.start),start:{...point},furthest:0,next:{...point},minutes:list.minutes};list.cursor={...point};
-   checkpoints[list.id]={listId:list.id,itemId:item.id,position:offset,offset,spent:0,elapsed:0,duration:measured,dayKey:list.day.key,signature:signature(list),done:false,history:[],at:Date.now()};
+   const day=listeningDay(list);rememberTrack(list,item,offset,measured);
+   checkpoints[list.id]={listId:list.id,itemId:item.id,position:offset,offset:0,spent:day.listened,elapsed:day.listened,duration:measured,dayKey:day.key,signature:signature(list),done:false,at:Date.now()};
    if(!active){selectedId=list.id;try{localStorage.setItem(scope+':selected',selectedId)}catch{}}
-   if(save()){render();tell('حُفظت حصة '+list.name+' من '+item.title+' عند '+fmt(offset)+'. اضغط تشغيل متى أردت.')}
+   if(save()){render();tell('حُفظ موضعك في '+list.name+' — '+item.title+' عند '+fmt(offset)+'. اضغط تشغيل متى أردت.')}
    else status.textContent='تعذر حفظ التعديل. تحقق من مساحة الجهاز.';
-  }catch(e){status.textContent=e.message||'تعذر تعديل الحصة.'}finally{submit.disabled=false}
+  }catch(e){status.textContent=e.message||'تعذر تغيير الموضع.'}finally{submit.disabled=false}
  };
  return {form,open};
 }
 function render(){
  const root=$('lessonLists');root.replaceChildren();
- if($('lessonListCount'))$('lessonListCount').textContent=lists.length+' من 50 قائمة · لكل قائمة حصة مستقلة';
+ if($('lessonListCount'))$('lessonListCount').textContent=lists.length+' من 50 قائمة · موضع مستقل لكل قائمة';
  const availableIds=new Set(library.map(item=>item.id));
  if(!lists.length){const p=document.createElement('p');p.textContent='أنشئ قائمة ثم أضف ملفات جهازك أو روابط دروسك.';root.append(p)}
  for(const list of lists){
@@ -131,49 +139,43 @@ function render(){
   const today=todayEditor(list);
   const h=document.createElement('h3');h.textContent=list.name;box.append(h);
   const desc=document.createElement('p');desc.className='raja-tip';
-  const day=core.ensureDay(list);
+  const day=listeningDay(list),saved=checkpointFor(list),current=list.items.find(i=>i.id===(saved?.itemId||list.cursor?.id));
   const missing=list.items.filter(item=>item.type==='file'&&!availableIds.has(item.libraryId));
-  desc.textContent=list.items.length+' دروس • '+day.minutes+' دقيقة يوميًا • اليوم يبدأ '+list.start+' بتوقيت السعودية • تقدم اليوم '+fmt(day.furthest)+(missing.length?' • '+missing.length+' مقاطع غير محفوظة على هذا الجهاز':'');
-  box.append(desc);
-  const controls=document.createElement('div');controls.className='org-actions';
-  const play=button('تشغيل حصة اليوم',()=>start(list));play.disabled=!list.items.length||!!missing.length;
-  if(missing.length){
-   play.title='هذه القائمة تتضمن مقاطع ليست محفوظة على الجهاز. أعد إضافتها أو أزل مراجعها من القائمة.';
-   controls.append(button('إزالة المقاطع غير الموجودة هنا',()=>changeStructure(list,()=>{
-    const unavailable=new Set(missing.map(item=>item.id));
-    list.items=list.items.filter(item=>!unavailable.has(item.id));
-   })));
-  }
-  const editToday=button('تعديل حصة اليوم',()=>today.open());editToday.disabled=!list.items.length;
-  controls.append(play,editToday,button('اختيار القائمة',()=>selectList(list.id)),button('تعديل الإعدادات',()=>{settings.hidden=!settings.hidden}),button('حذف القائمة',()=>{
-   if(!confirm('حذف قائمة الدروس؟ الملفات الأصلية تبقى في ملفاتي.'))return;
+  desc.textContent=list.items.length+' مقاطع · '+(goal(list)?'هدف '+goal(list)+' دقيقة · '+(day.listened>=goal(list)*60?'أكملت هدف اليوم ✓':'استمعت اليوم '+fmt(day.listened)):'استماع مفتوح');
+  const where=document.createElement('p');where.className='lesson-where';where.textContent=current?'وصلت إلى المقطع '+(list.items.indexOf(current)+1)+': '+current.title+' · عند '+fmt(saved?.position??list.cursor?.offset):'اختر مقطعًا أو ابدأ الاستماع';
+  if(current){where.textContent='وصلت إلى المقطع '+(list.items.indexOf(current)+1);const title=document.createElement('strong');title.className='lesson-last-title';title.dir='auto';title.textContent=current.title;const at=document.createElement('span');at.textContent='توقفت عند \u2066'+fmt(saved?.position??list.cursor?.offset)+'\u2069';where.append(title,at)}
+  box.append(desc,where);
+  const controls=document.createElement('div');controls.className='org-actions lesson-card-actions';
+  const play=button(saved?'متابعة':'تشغيل القائمة',()=>start(list));play.className+=' lesson-primary';play.disabled=!list.items.length||missing.length===list.items.length;
+  controls.append(play);box.append(controls,today.form);
+  const options=document.createElement('details');options.className='lesson-options';const optionTitle=document.createElement('summary');optionTitle.textContent='⋯ خيارات القائمة';options.append(optionTitle);
+  const edit=button('تغيير موضع الاستماع',()=>today.open());edit.disabled=!list.items.length;
+  options.append(edit,button('حذف القائمة',()=>{
+   if(!confirm('حذف القائمة؟ تبقى ملفاتك الأصلية في ملفاتي.'))return;
    if(active?.list===list)stop();delete checkpoints[list.id];lists=lists.filter(x=>x!==list);save();render();
-  }));box.append(controls,today.form);
-  const settings=document.createElement('form');settings.className='lesson-form';settings.hidden=true;
-  const name=input('اسم القائمة','text',list.name),minutes=input('دقائق يوميًا','number',list.minutes),begin=input('بداية اليوم بتوقيت السعودية','time',list.start);
-  name.input.required=true;name.input.maxLength=100;minutes.input.required=true;minutes.input.min=1;minutes.input.max=720;begin.input.required=true;
-  const submit=document.createElement('button');submit.type='submit';submit.textContent='حفظ الإعدادات';
-  settings.append(name.label,minutes.label,begin.label,submit);
+  }));
+  if(missing.length)options.append(button('إزالة المقاطع غير الموجودة هنا',()=>changeStructure(list,()=>{list.items=list.items.filter(i=>i.type!=='file'||availableIds.has(i.libraryId))})));
+  const settings=document.createElement('form');settings.className='lesson-form';
+  const name=input('اسم القائمة','text',list.name),minutes=input('هدف يومي بالدقائق (0 = استماع مفتوح)','number',goal(list)),begin=input('بداية إحصاء اليوم بتوقيت السعودية','time',list.start);
+  name.input.required=true;name.input.maxLength=100;minutes.input.required=true;minutes.input.min=0;minutes.input.max=720;begin.input.required=true;
+  const submit=document.createElement('button');submit.type='submit';submit.textContent='حفظ الإعدادات';settings.append(name.label,minutes.label,begin.label,submit);
   settings.onsubmit=e=>{
-   e.preventDefault();const n=Number(minutes.input.value),s=begin.input.value;
-   if(!name.input.value.trim()||!Number.isInteger(n)||n<1||n>720||!/^\d{2}:\d{2}$/.test(s))return;
-   const planChanged=n!==list.minutes||s!==list.start;
-   if(planChanged&&!confirm('تغيير المدة أو بداية اليوم يعيد خطة هذه القائمة من البداية. متابعة؟'))return;
-   if(planChanged)resetPlan(list);
-   list.name=name.input.value.trim();list.minutes=n;list.start=s;save();render();
-  };box.append(settings);
-  const add=document.createElement('details');const summary=document.createElement('summary');summary.textContent='إضافة دروس إلى القائمة';add.append(summary);
+   e.preventDefault();const n=Number(minutes.input.value),start=begin.input.value;
+   if(!name.input.value.trim()||!Number.isInteger(n)||n<0||n>720||!/^\d{2}:\d{2}$/.test(start))return;
+   if(active?.list===list){tick();save()}
+   list.name=name.input.value.trim();list.goalMinutes=n;list.start=start;list.minutes=n||30;save();render();tell('حُفظت الإعدادات. الهدف لا يوقف الصوت ولا يقيّد التنقل.');
+  };options.append(settings);box.append(options);
+  const add=document.createElement('details');add.className='lesson-add';add.open=!list.items.length;const summary=document.createElement('summary');summary.textContent='إضافة مقاطع';add.append(summary);
   const fileLabel=document.createElement('label');fileLabel.textContent='ملفات من الجهاز (تُضاف بترتيب الأسماء)';
   const files=document.createElement('input');files.type='file';files.accept=window.rajaLibrary.mediaAccept||'audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.flac';files.multiple=true;fileLabel.append(files);
   files.onchange=async()=>{
    try{
     const selected=[...files.files].sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true}));
     if(list.items.length+selected.length>500)throw Error('الحد الأقصى 500 درس للقائمة.');
-    if((list.day?.furthest||active?.list===list)&&!confirm('إضافة دروس تعيد خطة القائمة من البداية. متابعة؟'))return;
     files.disabled=true;
     const result=await window.rajaLibrary.importFiles(selected,{onProgress:message=>tell(message)});
     const imported=result.items.sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true}));
-    if(imported.length){resetPlan(list);for(const item of imported)list.items.push({id:uid(),type:'file',libraryId:item.id,mime:item.mime,title:item.name});save();render()}
+    if(imported.length)changeStructure(list,()=>{for(const item of imported)list.items.push({id:uid(),type:'file',libraryId:item.id,mime:item.mime,title:item.name})});
     tell((imported.length?'تمت إضافة '+imported.length+' دروس إلى القائمة. ':'')+result.errors.join(' '),!!result.errors.length);
    }catch(e){tell(e.message,true)}finally{files.value='';files.disabled=false}
   };add.append(fileLabel);
@@ -196,15 +198,26 @@ function render(){
    if(!id&&!/\.(mp3|m4a|aac|ogg|wav|flac|mp4|m4v|mov|webm)([?#]|$)/i.test(u.href))return tell('أضف رابط ملف صوت أو فيديو مباشر، أو رابط YouTube.',true);
    changeStructure(list,()=>list.items.push({id:uid(),type:id?'youtube':'url',url:u.href,videoId:id,title:title.input.value.trim()}));
   };add.append(linkForm);box.append(add);
+  const tracks=document.createElement('details');tracks.className='lesson-tracks';const tracksTitle=document.createElement('summary');tracksTitle.textContent='المقاطع ('+list.items.length+')';tracks.append(tracksTitle);
   list.items.forEach((item,index)=>{
-   const row=document.createElement('div');row.className='lesson-row';
-   const t=document.createElement('strong');t.textContent=(index+1)+'. '+item.title+(item.type==='file'&&!availableIds.has(item.libraryId)?' — غير محفوظ على هذا الجهاز':'');
+   const row=document.createElement('div');row.className='lesson-row';row.dataset.itemId=item.id;
+   const progress=list.progress?.[item.id],isCurrent=current?.id===item.id;row.dataset.progress=isCurrent?'current':progress?.completed?'completed':'pending';
+   const t=document.createElement('strong');t.dir='auto';t.textContent=(index+1)+'. '+item.title+(item.type==='file'&&!availableIds.has(item.libraryId)?' — غير محفوظ على هذا الجهاز':'');
+   const badge=document.createElement('small');badge.className='lesson-track-status';badge.textContent=isCurrent?'◉ وصلت هنا · '+fmt(saved?.position??list.cursor?.offset):progress?.completed?'✓ تم الاستماع':progress?.position?'توقفت عند '+fmt(progress.position):'لم تبدأ بعد';
+   const copy=document.createElement('div');copy.className='lesson-track-copy';copy.append(t,badge);
    const actions=document.createElement('div');actions.className='org-actions';
    const up=button('↑',()=>changeStructure(list,()=>{[list.items[index-1],list.items[index]]=[item,list.items[index-1]]}));up.setAttribute('aria-label','تقديم '+item.title);up.disabled=index===0;
    const down=button('↓',()=>changeStructure(list,()=>{[list.items[index+1],list.items[index]]=[item,list.items[index+1]]}));down.setAttribute('aria-label','تأخير '+item.title);down.disabled=index===list.items.length-1;
-   actions.append(button('ابدأ الحصة من هنا',()=>today.open(item.id)),up,down,button('تسمية',()=>{const name=prompt('اسم الدرس',item.title);if(name?.trim()){item.title=name.trim().slice(0,150);save();render()}}),button('حذف',()=>changeStructure(list,()=>list.items.splice(index,1))));
-   row.append(t,actions);box.append(row);
-  });root.append(box);
+   const playTrack=button('تشغيل',()=>start(list,{itemId:item.id,at:0}));playTrack.disabled=item.type==='file'&&!availableIds.has(item.libraryId);
+   const more=document.createElement('details');more.className='lesson-track-options';const moreTitle=document.createElement('summary');moreTitle.textContent='⋯';moreTitle.setAttribute('aria-label','خيارات '+item.title);more.append(moreTitle);
+   more.append(button('تغيير الموضع',()=>today.open(item.id)),up,down,button('تسمية',()=>{const name=prompt('اسم المقطع',item.title);if(name?.trim()){item.title=name.trim().slice(0,150);save();render()}}),button('حذف',()=>changeStructure(list,()=>list.items.splice(index,1))));
+   const moveTo=targetId=>{const from=list.items.findIndex(i=>i.id===item.id),to=list.items.findIndex(i=>i.id===targetId);if(from>=0&&to>=0&&from!==to)changeStructure(list,()=>{const moved=list.items.splice(from,1)[0];list.items.splice(to,0,moved)})};
+   const handle=button('⠿',()=>{});handle.className+=' lesson-drag';handle.setAttribute('aria-label','سحب لترتيب '+item.title);
+   handle.onpointerdown=e=>{e.preventDefault();handle.setPointerCapture?.(e.pointerId);row.dataset.dragging='true'};
+   handle.onpointerup=e=>{delete row.dataset.dragging;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.lesson-row');if(target?.closest('[data-lesson-list]')?.dataset.lessonList===list.id)moveTo(target.dataset.itemId)};
+   handle.onpointercancel=()=>{delete row.dataset.dragging};
+   actions.append(playTrack,more);row.append(handle,copy,actions);tracks.append(row);
+  });box.append(tracks);root.append(box);
  }
 }
 function activateAudioSession(rearm=false){
@@ -225,13 +238,13 @@ function activateAudioSession(rearm=false){
 function clearSource(){
  clearTimeout(audioRearmTimer);audioRearmTimer=null;
  clearInterval(timer);timer=null;
- if(media){media.onplay=media.onpause=media.onended=media.ontimeupdate=media.onloadedmetadata=media.onerror=null;media.pause();media.removeAttribute('src');media.load();media=null}
+ if(media){media.onplay=media.onpause=media.onended=media.ontimeupdate=media.onloadedmetadata=media.onerror=media.onseeking=media.onseeked=null;media.pause();media.removeAttribute('src');media.load();media=null}
  if(yt){try{yt.destroy()}catch{}yt=null}
  if(objectURL){URL.revokeObjectURL(objectURL);objectURL=''}
  audio.hidden=true;video.hidden=true;$('lessonYoutubeWrap').hidden=true;
 }
 function stop(persist=true){
- if(persist&&active)save();
+ if(persist&&active){tick();save()}
  generation++;active=null;clearSource();transition=false;$('lessonNow').hidden=true;
  if(navigator.mediaSession){navigator.mediaSession.playbackState='none';navigator.mediaSession.metadata=null}
  try{if(navigator.audioSession)navigator.audioSession.type='auto'}catch{}
@@ -240,13 +253,12 @@ function stop(persist=true){
 function pause(){if(media){if(!media.paused)media.pause()}else yt?.pauseVideo()}
 async function resume(){
  if(!active)return;
- if(core.dayKey(Date.now(),active.list.start)!==active.day.key){stop();tell('بدأ يوم استماع جديد. اضغط تشغيل حصة اليوم.');return}
- if(active.done)return start(active.list,{replay:true});
+ if(active.done)return start(active.list,{itemId:active.item.id,at:0});
  try{if(media){activateAudioSession();await media.play()}else yt?.playVideo()}catch{tell('اضغط تشغيل داخل المشغل للمتابعة.',true)}
 }
 function installSession(item){
  if(!navigator.mediaSession)return;
- if(typeof MediaMetadata!=='undefined')navigator.mediaSession.metadata=new MediaMetadata({title:item.title,artist:'رَجْع — '+active.list.name,album:'حصة '+active.day.key});
+ if(typeof MediaMetadata!=='undefined')navigator.mediaSession.metadata=new MediaMetadata({title:item.title,artist:'رَجْع — '+active.list.name,album:active.list.name});
  // Keep native play/pause/stop routing: iOS can resume the existing media
  // element while the page's JavaScript is suspended in the background.
  navigator.mediaSession.playbackState='none';
@@ -255,44 +267,31 @@ function installSession(item){
 }
 function seekTo(time){
  if(!active||transition)return;
- const end=Math.min(duration(),active.offset+active.day.minutes*60-active.spent);
- const t=Math.max(active.offset,Math.min(end,Number(time)||0));
+ const t=Math.max(0,Math.min(duration(),Number(time)||0));
+ active.lastPosition=t;active.done=false;
  if(media)media.currentTime=t;else yt?.seekTo(t,true);
- tick();
+ tick();save();
 }
 function seekBy(delta){seekTo(position()+delta)}
 const position=()=>media?media.currentTime:yt?.getCurrentTime?.()||0;
 const duration=()=>media?media.duration:yt?.getDuration?.()||0;
 function tick(ended=false){
  if(!active||transition||active.done)return;
- const a=active;
- if(core.dayKey(Date.now(),a.list.start)!==a.day.key){stop();tell('بدأ يوم جديد. اضغط تشغيل حصة اليوم للمتابعة.');return}
- const d=duration();if(!Number.isFinite(d)||d<=0)return;
- const max=a.day.minutes*60;
- let t=ended?d:position();
- if(t<a.offset){if(media)media.currentTime=a.offset;else yt?.seekTo(a.offset,true);return}
- const segmentEnd=Math.min(d,a.offset+max-a.spent);
- t=Math.min(t,segmentEnd);
- const elapsed=a.spent+Math.max(0,t-a.offset);
- const index=a.list.items.findIndex(x=>x.id===a.item.id);
- const next=t>=d-0.025?{id:a.list.items[index+1]?.id||null,offset:0}:{id:a.item.id,offset:t};
- core.remember(a.list,elapsed,next);
- $('lessonDailyProgress').value=Math.min(100,elapsed/max*100);
- $('lessonProgress').textContent='حصة اليوم '+fmt(elapsed)+' / '+fmt(max)+' • الدرس '+(index+1)+' من '+a.list.items.length;
- if(navigator.mediaSession&&media){
-  try{navigator.mediaSession.setPositionState({duration:d,playbackRate:media.playbackRate,position:Math.max(0,Math.min(t,d))})}catch{}
- }
+ const a=active,d=duration();if(!Number.isFinite(d)||d<=0)return;
+ const day=listeningDay(a.list),t=Math.min(d,Math.max(0,ended?d:position()));
+ if(a.day.key!==day.key){a.day=day;a.lastPosition=t}
+ const delta=Math.max(0,t-(a.lastPosition??t));day.listened+=delta;day.furthest=day.listened;a.lastPosition=t;
+ rememberTrack(a.list,a.item,t,d,ended||t>=d-.025);
+ const max=goal(a.list)*60;
+ $('lessonDailyProgress').value=max?Math.min(100,day.listened/max*100):0;
+ $('lessonProgress').textContent=max?(day.listened>=max?'أكملت هدف اليوم ✓ · واصل الاستماع بحرية':'هدف اليوم '+fmt(day.listened)+' / '+fmt(max)):'استماع مفتوح';
+ if(max&&day.listened>=max&&a.goalNotified!==day.key){a.goalNotified=day.key;tell('أكملت هدف اليوم ✓ · يستمر الاستماع دون توقف.')}
+ if(navigator.mediaSession&&media){try{navigator.mediaSession.setPositionState({duration:d,playbackRate:media.playbackRate,position:t})}catch{}}
  if(Date.now()-lastSave>1000){lastSave=Date.now();save()}
- if(elapsed>=max-0.025){
-  pause();if(media&&Math.abs(media.currentTime-segmentEnd)>0.1)media.currentTime=segmentEnd;
-  a.done=true;save();tell('اكتملت حصة اليوم. يمكنك إعادتها؛ اليوم التالي يتابع من نهايتها.');
- }else if(ended||t>=d-0.025){
-  if(index+1<a.list.items.length){
-   transition=true;a.spent=elapsed;
-   void openItem(a.list.items[index+1],0).catch(fail);
-  }else{
-   pause();a.done=true;save();tell('اكتملت القائمة. إعادة حصة اليوم متاحة، وفي اليوم التالي تبدأ القائمة من أولها.');
-  }
+ if(ended||t>=d-.025){
+  const index=a.list.items.findIndex(i=>i.id===a.item.id);
+  if(index+1<a.list.items.length){save();transition=true;void openItem(a.list.items[index+1],0).catch(fail)}
+  else{a.done=true;pause();save();tell('اكتملت القائمة. يمكنك اختيار أي مقطع أو إعادة المقطع الحالي.')}
  }
 }
 function fail(e){transition=false;pause();save();tell(e?.message||'تعذر تشغيل الدرس على هذا الجهاز.',true)}
@@ -309,7 +308,7 @@ async function youtubeAPI(){
 async function openItem(item,offset,playFrom=offset){
  const token=++generation;transition=true;clearSource();
  if(!active)return;
- active.item=item;active.offset=offset;active.done=false;
+ active.item=item;active.offset=0;active.lastPosition=playFrom;active.done=false;
  if(!active.history.some(h=>h.id===item.id))active.history.push({id:item.id,offset,spent:active.spent});
  $('lessonNowTitle').textContent=active.list.name+' — '+item.title;
  if(item.type==='youtube'){
@@ -337,10 +336,11 @@ async function openItem(item,offset,playFrom=offset){
   player.onloadedmetadata=()=>{
    if(token!==generation)return;
    if(!Number.isFinite(player.duration)||player.duration<=0){fail(Error('الحصص اليومية تحتاج ملفًا محدد المدة، وليس بثًا مباشرًا.'));return}
-   player.currentTime=Math.min(playFrom,player.duration);transition=false;save(false);
+   player.currentTime=Math.min(playFrom,player.duration);active.lastPosition=player.currentTime;transition=false;save(false);
    void player.play().catch(()=>tell('اضغط زر التشغيل داخل المشغل؛ المتصفح يحتاج لمسة لبدء الصوت.'));
   };
   player.ontimeupdate=()=>tick();player.onended=()=>tick(true);
+  player.onseeking=player.onseeked=()=>{if(active&&token===generation)active.lastPosition=player.currentTime};
   player.onerror=()=>{if(token===generation)fail(Error('صيغة الملف أو رابط الدرس غير قابل للتشغيل.'))};
   player.onplay=()=>{
    $('lessonPause').textContent='إيقاف مؤقت';
@@ -352,29 +352,26 @@ async function openItem(item,offset,playFrom=offset){
   installSession(item);
  }
 }
-async function start(list,{replay=false}={}){
- stop();if(!list.items.length)return;
- const available=new Set((await window.rajaLibrary.items()).map(item=>item.id));
- if(list.items.some(item=>item.type==='file'&&!available.has(item.libraryId))){
-  tell('تحتوي القائمة على مقاطع غير محفوظة على هذا الجهاز. أعد إضافتها أو أزلها من القائمة.',true);
-  window.rajaSwitchTab?.('organizer');return;
- }
- const day=core.ensureDay(list),saved=replay?null:checkpointFor(list),point=saved&&!saved.done?saved:null;
- if(replay)delete checkpoints[list.id];
- const item=list.items.find(x=>x.id===(point?.itemId||day.start.id))||list.items[0];
+async function start(list,{itemId=null,at=null,replay=false}={}){
+ stop();if(!list.items.length)return;const request=generation;
+ const day=listeningDay(list),point=checkpointFor(list);
+ const item=list.items.find(i=>i.id===(itemId||point?.itemId||list.cursor?.id))||list.items[0];
+ const available=new Set((await window.rajaLibrary.items()).map(i=>i.id));if(request!==generation)return;
+ if(item.type==='file'&&!available.has(item.libraryId)){tell('المقطع غير محفوظ على هذا الجهاز. أعد إضافته أو اختر مقطعًا آخر.',true);window.rajaSwitchTab?.('organizer');return}
+ const offset=at??(replay||point?.done?0:point?.itemId===item.id?point.position:list.cursor?.id===item.id?list.cursor.offset:0);
  selectedId=list.id;try{localStorage.setItem(scope+':selected',selectedId)}catch{}
- active={list,day,item,offset:point?.offset??day.start.offset,spent:point?.spent??0,done:false,history:Array.isArray(point?.history)?point.history:[]};
- window.rajaRecorderHome?.();
- $('lessonNow').hidden=false;$('lessonDailyProgress').value=0;$('lessonProgress').textContent='جارٍ تجهيز حصة اليوم...';
+ active={list,day,item,offset:0,spent:day.listened,lastPosition:offset,done:false,history:[]};
+ window.rajaRecorderHome?.();$('lessonNow').hidden=false;
  $('player').pause();$('youtube').removeAttribute('src');
- save();tell(point?'متابعة من موضع التوقف '+fmt(point.position)+'؛ زر إعادة الحصة يبدأها من جديد.':'هذه حصة اليوم؛ زر إعادة الحصة يعيدها من بدايتها.');
- try{await openItem(item,active.offset,point?.position??day.start.offset)}catch(e){fail(e)}
+ tell(offset?'متابعة من '+fmt(offset):'استماع مفتوح · اختر المقاطع وتنقّل بحرية.');
+ try{await openItem(item,0,offset)}catch(e){fail(e)}
 }
 
 window.rajaLessons={
  snapshot:()=>JSON.parse(JSON.stringify(lists)),
  listOptions:()=>lists.map(l=>({id:l.id,name:l.name})),
  selectList,
+ refreshLists(){tick();save(false);render()},
  importLocalLists(guest){
   if(!Array.isArray(guest))return 0;
   const ids=new Set(lists.map(list=>list.id));
@@ -385,10 +382,11 @@ window.rajaLessons={
  state(){
   const list=active?.list||selectedList();
   if(!list)return null;
-  const day=core.ensureDay(list),saved=checkpointFor(list),item=active?.item||list.items.find(i=>i.id===(saved?.itemId||day.start.id))||list.items[0];
-  return {listId:list.id,name:list.name,title:item?.title||'أضف دروسك إلى القائمة',index:list.items.findIndex(i=>i.id===item?.id)+1,count:list.items.length,
-   minutes:day.minutes,start:list.start,position:active?position():saved?.position??day.start.offset,duration:active?duration():saved?.duration||0,
-   elapsed:active?active.spent+Math.max(0,position()-active.offset):saved?.elapsed||0,resumable:!active&&!!saved&&!saved.done,
+  const day=listeningDay(list),saved=checkpointFor(list),item=active?.item||list.items.find(i=>i.id===(saved?.itemId||list.cursor?.id))||list.items[0];
+  const current=list.progress?.[item?.id];
+  return {listId:list.id,name:list.name,title:item?.title||'أضف مقاطعك إلى القائمة',index:list.items.findIndex(i=>i.id===item?.id)+1,count:list.items.length,
+   minutes:goal(list),start:list.start,position:active?position():saved?.position??list.cursor?.offset??0,duration:active?duration():saved?.duration||current?.duration||0,
+   elapsed:day.listened,goalReached:!!goal(list)&&day.listened>=goal(list)*60,resumable:!active&&!!saved,
    playing:!!active&&!active.done&&(media?!media.paused:yt?.getPlayerState?.()===1),
    picture:!!active&&(active.item.type==='youtube'||media===video),active:!!active,done:active?!!active.done:!!saved?.done};
  },
@@ -399,18 +397,18 @@ window.rajaLessons={
  replay(){if(active)return start(active.list,{replay:true});const list=selectedList();if(list)return start(list,{replay:true})},
  seek:seekTo,seekBy,
  async step(direction){
-  if(!active||transition||active.done)return;
-  if(direction>0){tick(true);return}
-  const index=active.list.items.findIndex(i=>i.id===active.item.id);
-  const previous=active.list.items[index-1],history=active.history.find(h=>h.id===previous?.id);
-  if(!history){seekTo(active.offset);return}
-  active.spent=history.spent;
-  try{await openItem(previous,history.offset)}catch(e){fail(e)}
+  if(transition)return;
+  const list=active?.list||selectedList();if(!list?.items.length)return;
+  const item=active?.item||list.items.find(i=>i.id===(checkpointFor(list)?.itemId||list.cursor?.id))||list.items[0];
+  const index=list.items.indexOf(item),next=list.items[index+(direction>0?1:-1)];
+  if(next)return start(list,{itemId:next.id,at:0});
+  if(direction<0)return start(list,{itemId:item.id,at:0});
+  tell('أنت عند آخر مقطع في القائمة.');
  },
  stop,
  async playLibraryItem(item){
   const found=lists.find(l=>l.items.some(i=>i.libraryId===item.id));
-  if(found)return start(found);
+  if(found)return start(found,{itemId:found.items.find(i=>i.libraryId===item.id).id,at:0});
   const list={id:'preview-'+item.id,name:'ملفاتي',minutes:720,start:'05:00',items:[{id:item.id,type:item.type,libraryId:item.id,videoId:item.videoId,mime:item.mime,title:item.name}]};
   return start(list);
  }
@@ -419,14 +417,19 @@ window.rajaLessons={
 $('lessonPause').onclick=()=>{if(media?.paused||yt?.getPlayerState?.()===2)void resume();else pause()};
 $('lessonReplay').onclick=()=>{if(active)void start(active.list,{replay:true})};
 $('lessonStop').onclick=stop;
-$('lessonCreate').onsubmit=e=>{
+$('lessonCreate').onsubmit=async e=>{
  e.preventDefault();if(!scope)return;
  const name=$('lessonName').value.trim(),minutes=Number($('lessonMinutes').value),start=$('lessonStart').value;
- if(!name||!Number.isInteger(minutes)||minutes<1||minutes>720||!/^\d{2}:\d{2}$/.test(start))return;
+ if(!name||!Number.isInteger(minutes)||minutes<0||minutes>720||!/^\d{2}:\d{2}$/.test(start))return;
  if(lists.length>=50)return tell('الحد الأقصى 50 قائمة دروس.',true);
- const created={id:uid(),name,minutes,start,items:[],cursor:null,day:null};lists.push(created);
+ if(($('lessonFiles')?.files?.length||0)>500)return tell('الحد الأقصى 500 مقطع لكل قائمة.',true);
+ const created={id:uid(),name,minutes:minutes||30,goalMinutes:minutes,openListeningVersion:23,start,items:[],cursor:null,day:null};lists.push(created);
  if(!active){selectedId=created.id;try{localStorage.setItem(scope+':selected',selectedId)}catch{}}
- if(save()){$('lessonName').value='';render();tell('أُنشئت القائمة رقم '+lists.length+'. أضف دروسك بترتيب الاستماع. يتم الحفظ على هذا الجهاز.')}
+ if(save()){
+  const chosen=[...($('lessonFiles')?.files||[])];$('lessonName').value='';if($('lessonCreatePanel'))$('lessonCreatePanel').open=false;render();
+  if(chosen.length){try{const result=await window.rajaLibrary.importFiles(chosen.slice(0,500).sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true})),{onProgress:message=>tell(message)});for(const i of result.items.sort((a,b)=>a.name.localeCompare(b.name,'ar',{numeric:true})))created.items.push({id:uid(),type:'file',libraryId:i.id,mime:i.mime,title:i.name});save();render();tell('أُنشئت القائمة وأُضيفت '+result.items.length+' مقاطع. '+result.errors.join(' '),!!result.errors.length)}catch(e){tell(e.message,true)}finally{$('lessonFiles').value=''}}
+  else tell('أُنشئت القائمة. أضف المقاطع أو اخترها من ملفاتي.');
+ }
 };
 window.addEventListener('raja-other-playback',()=>stop());
 $('player').addEventListener('play',()=>{if(active)stop()});
@@ -449,7 +452,8 @@ window.rajaLessonsReady=(async()=>{
  scope='raja-lessons-v1-'+(auth?.user?.id?auth.user.id:'local');
  try{selectedId=localStorage.getItem(scope+':selected')||'';const stored=JSON.parse(localStorage.getItem(scope+':positions')||'{}');if(stored&&typeof stored==='object'&&!Array.isArray(stored))checkpoints=stored}catch{}
  try{const stored=JSON.parse(localStorage.getItem(scope)||'[]');if(Array.isArray(stored))lists=stored}catch{tell('تعذر قراءة القوائم السابقة.',true)}
- await reloadLibrary();
+ for(const list of lists){if(!Number.isFinite(list.goalMinutes))list.goalMinutes=0;list.progress||={};const saved=checkpointFor(list);if(list.openListeningVersion!==23){if(saved)saved.done=false;list.openListeningVersion=23;}if(saved)list.progress[saved.itemId]||={position:saved.position,duration:saved.duration||0,completed:!!saved.done};}
+ await reloadLibrary();if($('lessonCreatePanel'))$('lessonCreatePanel').open=!lists.length;
  const importButton=$('importGuestLibrary');
  if(auth?.user?.id&&importButton){
   importButton.hidden=false;
