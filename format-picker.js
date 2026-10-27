@@ -7,7 +7,14 @@
   const SUPPORTED = {
     MP4:'فيديو MP4', WEBM:'فيديو WebM', M4A:'صوت M4A',
     MP3:'صوت MP3', OPUS:'صوت OPUS', OGG:'صوت OGG',
-    WAV:'صوت WAV', MOV:'فيديو MOV', AAC:'صوت AAC', FLAC:'صوت FLAC'
+    WAV:'صوت WAV', MOV:'فيديو MOV', AAC:'صوت AAC', FLAC:'صوت FLAC',
+    MKV:'فيديو MKV', AVI:'فيديو AVI', MPEG:'فيديو MPEG', MPG:'فيديو MPG',
+    TS:'فيديو TS', M3U8:'قائمة بث M3U8', MPD:'بيان بث MPD',
+    WMA:'صوت WMA', AIFF:'صوت AIFF', AMR:'صوت AMR',
+    PDF:'مستند PDF', ZIP:'أرشيف ZIP', RAR:'أرشيف RAR', '7Z':'أرشيف 7Z',
+    TXT:'ملف نصي', EPUB:'كتاب EPUB', DOCX:'مستند DOCX', XLSX:'جدول XLSX',
+    PPTX:'عرض PPTX', JPG:'صورة JPG', JPEG:'صورة JPEG', PNG:'صورة PNG',
+    WEBP:'صورة WebP', GIF:'صورة GIF', SVG:'صورة SVG'
   };
   let current = null, options=[], chosen=null, loading=false, error='', requestSerial=0, timer=null, controller=null;
   const ssFallback=$('ssFallback'), ssFallbackLink=$('ssFallbackLink');
@@ -82,7 +89,7 @@
     if(!current)return;
     let opts=[];
     if(current.kind==='direct'){
-      opts=[{format:current.extension.toLowerCase(),kind:/^(mp3|m4a|ogg|opus|flac|aac|wav)$/.test(current.extension.toLowerCase())?'audio':'video',quality:'',available:true}];
+      opts=[{format:current.extension.toLowerCase(),kind:/^(mp3|m4a|ogg|opus|flac|aac|wav|wma|aiff|amr)$/.test(current.extension.toLowerCase())?'audio':/^(mp4|webm|mov|mkv|avi|mpeg|mpg|ts)$/.test(current.extension.toLowerCase())?'video':'file',quality:'',available:true}];
     }else{
       opts=options;
     }
@@ -97,7 +104,7 @@
       b.type='button';b.className='format-option'+(active?' chosen':'');
       b.setAttribute('aria-pressed',String(active));
       const span=document.createElement('span');
-      span.textContent=(stream.kind==='audio'?'🎵 ':'🎬 ')+label(stream);
+      span.textContent=(stream.kind==='audio'?'🎵 ':stream.kind==='video'?'🎬 ':'📄 ')+label(stream);
       const note=document.createElement('small');
       note.textContent=current.kind==='youtube'?(stream.backend?'من خادم رَجْع':'من مصدر مجاني متاح'):'الملف بصيغته الأصلية';
       b.append(span,note);
@@ -129,7 +136,7 @@
       }
     }else if(current?.kind==='direct'){
       b.href=current.url;
-      b.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-media');
+      b.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-file');
     }
     const keep=$('formatKeep');
     const canSaveVideo=current?.kind==='youtube'&&ready&&selected.backend&&['mp4','mp3'].includes(selected.format);
@@ -142,7 +149,7 @@
       else if(ready)say('اختر الجودة ثم اضغط تنزيل. سيُحفظ الملف في تنزيلات الجهاز إذا سمح مصدر المقطع بذلك. لا يجري تخزينه دائمًا على رَجْع.');
       else say('لم تتوفر صيغ قابلة للتنزيل لهذا الرابط.',true);
     }else if(current?.kind==='direct'){
-      say('يمكن تنزيل الملف بصيغته الأصلية '+current.extension+' إذا سمح الخادم المصدر.');
+      say('سيُفتح رابط '+current.extension+' الأصلي للتنزيل أو العرض حسب سماح المصدر وإعدادات المتصفح. لا يغيّر رَجْع الصيغة.');
     }
   }
   const BROWSER_MIRRORS=[
@@ -278,7 +285,7 @@
     const data=parse(input.value);
     if(!data){
       resetNetwork();current=null;picker.hidden=true;updateSSFallback();
-      if(!silent)$('notice').textContent='أدخل رابط يوتيوب أو رابط ملف وسائط مباشر صحيح.';
+      if(!silent)$('notice').textContent='أدخل رابط YouTube أو رابط ملف مباشر بصيغة مدعومة.';
       return false;
     }
     if(current?.url===data.url&&!force)return true;
@@ -287,7 +294,7 @@
     picker.hidden=false;updateSSFallback();
     $('formatSource').textContent=data.kind==='youtube'?'رابط YouTube':'ملف مباشر';
     $('formatIntro').textContent=data.kind==='youtube'?'اكتشاف صيغ الفيديو والصوت المتاحة...':'تنزيل الملف بصيغته الأصلية';
-    $('formatPreview').textContent=data.kind==='youtube'?'مشاهدة الفيديو':'تشغيل الملف';
+    $('formatPreview').textContent=data.kind==='youtube'?'مشاهدة الفيديو':'فتح الملف';
     const cover=$('formatCover');
     cover.hidden=data.kind!=='youtube';
     if(data.kind==='youtube')cover.src='https://i.ytimg.com/vi/'+encodeURIComponent(data.id)+'/hqdefault.jpg';
@@ -324,7 +331,8 @@
     clearTimeout(timer);resetNetwork();current=data;picker.hidden=true;
     window.rajaShowPlayer?.();
     if(data.kind==='youtube')window.rajaOpenYoutube(data.id);
-    else window.rajaLoadMedia(data.url,'وسائط');
+    else if(/^(mp3|m4a|ogg|opus|flac|aac|wav|wma|aiff|amr|mp4|webm|mov|mkv|avi|mpeg|mpg|ts)$/i.test(data.extension))window.rajaLoadMedia(data.url,'وسائط');
+    else {window.open(data.url,'_blank','noopener,noreferrer');return;}
     $(data.kind==='youtube'?'youtube':'player').scrollIntoView({behavior:'smooth',block:'center'});
   }
   $('formatPreview').onclick=watchLink;
