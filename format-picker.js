@@ -135,7 +135,7 @@
         b.download='raja-'+current.id+'.'+selected.format;
       }
     }else if(current?.kind==='direct'){
-      b.href=current.url;
+      b.href='/api/direct-download?url='+encodeURIComponent(current.url);
       b.download=decodeURIComponent(new URL(current.url).pathname.split('/').pop()||'raja-file');
     }
     const keep=$('formatKeep');
@@ -333,7 +333,7 @@
         say('أرسل رَجْع طلب الملف إلى تنزيلات المتصفح. ستظهر النتيجة في تنزيلات الجهاز؛ وقد يفشل المصدر في بعض المقاطع.');
       }
     }else{
-      say('أرسل رَجْع رابط الملف المباشر إلى تنزيلات المتصفح.');
+      say('بدأ طلب الملف عبر خادم رَجْع الآمن. إذا منع المصدر التنزيل أو تجاوز الملف الحد فستظهر رسالة خطأ.');
     }
   };
   function watchLink(){
