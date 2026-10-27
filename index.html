@@ -27,7 +27,7 @@
 <input id="url" type="url" placeholder="رابط YouTube أو رابط معدّل مثل yout-ube" aria-label="أدخل رابط تحميل الفيديو" autocomplete="url" autocapitalize="off" spellcheck="false">
 <button id="pasteLink" type="button" class="paste-btn" aria-label="لصق الرابط" title="لصق الرابط"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 .2l2-2a5 5 0 0 0-7-7l-1.2 1.2M14 11a5 5 0 0 0-7-.2l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></svg></button>
 </div>
-<p id="pasteStatus" role="status" class="raja-search-helper">الصق الرابط واضغط «تشغيل الرابط» للمشاهدة، أو سهم التنزيل لاختيار الصيغة والجودة.</p>
+<p id="pasteStatus" role="status" class="raja-search-helper">الصق رابط YouTube للتشغيل أو رابط ملف مباشر لتنزيله بصيغته الأصلية إذا سمح المصدر.</p>
 <div class="raja-browse"><button type="button" class="raja-pill" id="watchLink">▶ تشغيل الرابط داخل رَجْع</button><button type="button" class="raja-pill" id="browseMedia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c6 6 6 12 0 18M12 3c-6 6-6 12 0 18"/></svg> المتصفح</button></div>
 <div id="formatChooser" hidden aria-label="اختيار صيغة التنزيل">
 <div class="line" style="justify-content:space-between"><h3>اختر الصيغة والجودة</h3><button id="formatClose" type="button" class="lib-btn">إغلاق</button></div>
@@ -169,4 +169,4 @@ $('form').onsubmit=e=>{e.preventDefault();let u;try{u=new URL($('media').value);
 $('clear').onclick=()=>{if(confirm('مسح الجدولة المحلية؟')){localStorage.removeItem(key);v.removeAttribute('src');v.load();$('featured').textContent='لم يُضف مقطع اليوم بعد.';refresh()}};refresh();
 
 window.rajaLoadMedia=load;window.rajaOpenYoutube=openYouTube;window.rajaYoutubeId=youtubeId;
-</script><script src="/site-config.js?v=30" defer></script><script src="/auth-client.js?v=30" defer></script><script src="/password-client.js?v=30" defer></script><script src="/file-fingerprint.js?v=30" defer></script><script src="/library.js?v=30" defer></script><script src="/format-picker.js?v=30" defer></script><script src="/app-shell.js?v=30" defer></script><script src="/organizer.js?v=30" defer></script><script src="/lesson-core.js?v=30" defer></script><script src="/lessons.js?v=31" defer></script><script src="/recorder.js?v=30" defer></script></body></html>
+</script><script src="/site-config.js?v=30" defer></script><script src="/auth-client.js?v=30" defer></script><script src="/password-client.js?v=30" defer></script><script src="/file-fingerprint.js?v=30" defer></script><script src="/library.js?v=30" defer></script><script src="/format-picker.js?v=31" defer></script><script src="/app-shell.js?v=30" defer></script><script src="/organizer.js?v=30" defer></script><script src="/lesson-core.js?v=30" defer></script><script src="/lessons.js?v=31" defer></script><script src="/recorder.js?v=30" defer></script></body></html>
