@@ -260,7 +260,7 @@
         render();
         const success=await browserFallback(id,serial);
         if(!success&&serial===requestSerial){
-          error='لم تتوفر صيغ تنزيل لهذا الرابط الآن؛ قد يتطلب المقطع تسجيل دخول أو تحققًا من يوتيوب.';
+          error='لم يُرجع مصدر التنزيل ملفًا قابلًا للحفظ. هذا لا يعني بالضرورة أن المقطع يتطلب تسجيل الدخول. يمكنك مشاهدته أو حفظ رابطه.';
           updateSSFallback();
           offerSSRedirect(serial);
         }
@@ -279,7 +279,7 @@
       if(json.title)$('formatIntro').textContent=json.title;
     }catch(e){
       if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=await browserFallback(id,serial);if(!success&&serial===requestSerial){
-          error='تعذر الاتصال بخدمة تنزيل يوتيوب لهذا الرابط. حاول مجددًا لاحقًا.';
+          error='تعذر الاتصال بمصادر التنزيل لهذا الرابط. لا يمكن تأكيد السبب أو توفر الملف حاليًا.';
           updateSSFallback();
           offerSSRedirect(serial);
         }}
