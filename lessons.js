@@ -201,10 +201,12 @@ function render(){
   if(current){where.textContent='وصلت إلى المقطع '+(list.items.indexOf(current)+1);const title=document.createElement('strong');title.className='lesson-last-title';title.dir='auto';title.textContent=current.title;const at=document.createElement('span');at.textContent='توقفت عند \u2066'+fmt(saved?.position??list.cursor?.offset)+'\u2069';where.append(title,at)}
   if(plan){const p=partPoint(list,plan,current?.id||list.items[0]?.id,saved?.position??list.cursor?.offset??0);desc.textContent=list.items.length+' ملفات أصلية · '+plan.count+' أجزاء · مدة الجزء '+partMinutes(list)+' دقيقة';where.textContent='وصلت إلى الجزء '+(p.index+1)+' من '+plan.count;const at=document.createElement('span');at.textContent='توقفت عند \u2066'+fmt(p.position)+' / '+fmt(p.duration)+'\u2069';where.append(at)}
   box.append(desc,where);
+  const morePanel=document.createElement('details');morePanel.className='lesson-manage-compact';
+  const moreTitle=document.createElement('summary');moreTitle.textContent='إدارة القائمة · الأجزاء والملفات والإعدادات';morePanel.append(moreTitle);
   const controls=document.createElement('div');controls.className='org-actions lesson-card-actions';
   const play=button(saved?'متابعة':'تشغيل القائمة',()=>start(list));play.className+=' lesson-primary';play.disabled=!list.items.length||missing.length===list.items.length;
-  controls.append(play);if(partMinutes(list)&&!plan&&list.items.length)controls.append(button('تجهيز الأجزاء',()=>prepareParts(list)));box.append(controls,today.form);
-  if(plan)box.append(renderParts(list,plan));
+  controls.append(play);if(partMinutes(list)&&!plan&&list.items.length)controls.append(button('تجهيز الأجزاء',()=>prepareParts(list)));box.append(controls);morePanel.append(today.form);
+  if(plan)morePanel.append(renderParts(list,plan));
   const options=document.createElement('details');options.className='lesson-options';const optionTitle=document.createElement('summary');optionTitle.textContent='⋯ خيارات القائمة';options.append(optionTitle);
   const edit=button('تغيير موضع الاستماع',()=>today.open());edit.disabled=!list.items.length;
   options.append(edit,button('حذف القائمة',()=>{
@@ -224,7 +226,7 @@ function render(){
    if(size!==partMinutes(list)&&active?.list===list)stop();
    list.name=name.input.value.trim();list.partMinutes=size;list.goalMinutes=n;list.start=start;list.minutes=n||30;save();render();
    try{if(size)await prepareParts(list);tell('حُفظت الإعدادات. اختر أي جزء واستمع أو أعده بحرية.')}catch(e){tell(e.message,true)}
-  };options.append(settings);box.append(options);
+  };options.append(settings);morePanel.append(options);
   const add=document.createElement('details');add.className='lesson-add';add.open=!list.items.length;const summary=document.createElement('summary');summary.textContent='إضافة مقاطع';add.append(summary);
   const fileLabel=document.createElement('label');fileLabel.textContent='ملفات من الجهاز (تُضاف بترتيب الأسماء)';
   const files=document.createElement('input');files.type='file';files.accept=window.rajaLibrary.mediaAccept||'audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.flac';files.multiple=true;fileLabel.append(files);
@@ -257,7 +259,7 @@ function render(){
    const id=window.rajaYoutubeId(u.href);
    if(!id&&!/\.(mp3|m4a|aac|ogg|wav|flac|mp4|m4v|mov|webm)([?#]|$)/i.test(u.href))return tell('أضف رابط ملف صوت أو فيديو مباشر، أو رابط YouTube.',true);
    changeStructure(list,()=>list.items.push({id:uid(),type:id?'youtube':'url',url:u.href,videoId:id,title:title.input.value.trim()}));
-  };add.append(linkForm);box.append(add);
+  };add.append(linkForm);morePanel.append(add);
   const tracks=document.createElement('details');tracks.className='lesson-tracks';const tracksTitle=document.createElement('summary');tracksTitle.textContent=(partMinutes(list)?'الملفات الأصلية (':'المقاطع (')+list.items.length+')';tracks.append(tracksTitle);
   list.items.forEach((item,index)=>{
    const row=document.createElement('div');row.className='lesson-row';row.dataset.itemId=item.id;
@@ -277,7 +279,7 @@ function render(){
    handle.onpointerup=e=>{delete row.dataset.dragging;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.lesson-row');if(target?.closest('[data-lesson-list]')?.dataset.lessonList===list.id)moveTo(target.dataset.itemId)};
    handle.onpointercancel=()=>{delete row.dataset.dragging};
    actions.append(playTrack,more);row.append(handle,copy,actions);tracks.append(row);
-  });box.append(tracks);root.append(box);
+  });morePanel.append(tracks);box.append(morePanel);root.append(box);
  }
 }
 function activateAudioSession(rearm=false){
