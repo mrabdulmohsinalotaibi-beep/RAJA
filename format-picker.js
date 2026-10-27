@@ -106,7 +106,7 @@
       const span=document.createElement('span');
       span.textContent=(stream.kind==='audio'?'🎵 ':stream.kind==='video'?'🎬 ':'📄 ')+label(stream);
       const note=document.createElement('small');
-      note.textContent=current.kind==='youtube'?(stream.backend?'من خادم رَجْع':'من مصدر مجاني متاح'):'الملف بصيغته الأصلية';
+      note.textContent=current.kind==='youtube'?(stream.backend?'من خادم رَجْع':'مصدر خارجي غير مضمون على iPhone'):'الملف بصيغته الأصلية';
       b.append(span,note);
       b.onclick=()=>{chosen=i;render();renderAction();};
       root.append(b);
@@ -146,7 +146,7 @@
     if(current?.kind==='youtube'){
       if(loading)say('يجري فحص صيغ MP4 والصوت من مصادر مجانية. انتظر النتيجة...');
       else if(error)say(error,true);
-      else if(ready)say('اختر الجودة ثم اضغط تنزيل. سيُحفظ الملف في تنزيلات الجهاز إذا سمح مصدر المقطع بذلك. لا يجري تخزينه دائمًا على رَجْع.');
+      else if(ready)say(selected?.localDirect?'هذه صيغة مكتشفة من مصدر خارجي، وقد يمنع iPhone تنزيلها. سيجري اختبار الاستلام عند الضغط.':'اختر الجودة ثم اضغط تنزيل؛ يعتمد النجاح على توفر الملف وسماح الخادم بالتنزيل.');
       else say('لم تتوفر صيغ قابلة للتنزيل لهذا الرابط.',true);
     }else if(current?.kind==='direct'){
       say('سيُفتح رابط '+current.extension+' الأصلي للتنزيل أو العرض حسب سماح المصدر وإعدادات المتصفح. لا يغيّر رَجْع الصيغة.');
@@ -189,7 +189,8 @@
     return streams.slice(0,25);
   }
   async function browserFallback(id,serial){
-    // Requests originate from the user's own browser; public providers may reject CORS.
+    // Do not present third-party stream metadata as a successful download.
+    // Browser CORS, expired signatures and blocked hosts are common on iOS.
     const attempts=await Promise.all(BROWSER_MIRRORS.map(async ([type,base])=>{
       const ac=new AbortController();
       const timeout=setTimeout(()=>ac.abort(),7000);
@@ -205,30 +206,38 @@
     if(serial!==requestSerial)return false;
     const good=attempts.find(Boolean);
     if(!good)return false;
-    options=good.streams;
+    // Avoid duplicates when providers repeat the same variants.
+    const unique=new Map();
+    for(const stream of good.streams)if(!unique.has(stream.url))unique.set(stream.url,stream);
+    options=[...unique.values()];
     chosen=0;error='';
     if(good.title)$('formatIntro').textContent=good.title;
     return true;
   }
   async function saveBrowserStream(stream){
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),180000);
+    const ac=new AbortController();
+    const timeout=setTimeout(()=>ac.abort(),180000);
     const maxSize=300*1024*1024;
-    say('جارٍ تنزيل الملف على هذا الجهاز من مصدر عام. قد يستغرق الأمر وقتًا بحسب حجمه...');
+    const id=current?.id;
+    say('التحقق من إمكانية استلام الملف عبر متصفح الجهاز...');
     try{
-      const response=await fetch(stream.url,{mode:'cors',credentials:'omit',signal:controller.signal});
-      if(!response.ok)throw new Error('تعذر تنزيل الملف من المصدر: '+response.status);
-      if(Number(response.headers.get('content-length')||0)>maxSize)throw new Error('الملف كبير؛ حد التنزيل عبر المتصفح 300 ميجابايت في هذا الوضع.');
+      const response=await fetch(stream.url,{mode:'cors',credentials:'omit',signal:ac.signal});
+      if(!response.ok)throw new Error('HTTP '+response.status);
+      const type=(response.headers.get('content-type')||'').toLowerCase();
+      if(type.includes('text/html')||type.includes('application/json'))throw new Error('استجاب المصدر بصفحة وليس ملف وسائط');
+      const size=Number(response.headers.get('content-length')||0);
+      if(size>maxSize)throw new Error('الملف أكبر من 300 ميجابايت');
       const blob=await response.blob();
-      if(blob.size>maxSize)throw new Error('حجم الملف يتجاوز 300 ميجابايت.');
+      if(!blob.size||blob.size>maxSize)throw new Error('الملف فارغ أو أكبر من الحد المسموح');
       const objectURL=URL.createObjectURL(blob),a=document.createElement('a');
-      a.href=objectURL;a.download='raja-'+current.id+'.'+stream.format;
+      a.href=objectURL;a.download='raja-'+id+'.'+stream.format;
       document.body.appendChild(a);a.click();a.remove();
       setTimeout(()=>URL.revokeObjectURL(objectURL),60000);
-      say('انتهى استلام الملف من المصدر. تحقق من التنزيلات أو تطبيق الملفات على جهازك.');
+      say('استلم المتصفح الملف؛ تحقق من التنزيلات أو تطبيق الملفات.');
     }catch(e){
-      say('لم يكتمل تنزيل الملف من الخدمة العامة ('+(e.name==='AbortError'?'انتهت المهلة':e.message)+'). قد يمنع المتصفح الوصول إلى المصدر.',true);
-    }finally{clearTimeout(timer)}
+      const blocked=e instanceof TypeError;
+      say(blocked?'المصدر لا يسمح باستلام الملف من متصفح iPhone (قيود الوصول CORS). عرض الصيغة لا يعني أن رابطها قابل للتنزيل. يمكنك تشغيل المقطع داخل رَجْع أو استيراد ملف حصلت عليه من مصدر مصرح.':'فشل استلام الملف: '+(e.name==='AbortError'?'انتهت المهلة':e.message),true);
+    }finally{clearTimeout(timeout)}
   }
   async function checkYoutube(id,serial){
     const ac=new AbortController();
