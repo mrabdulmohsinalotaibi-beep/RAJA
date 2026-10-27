@@ -76,3 +76,27 @@ a,.raja-brand small{color:var(--raja-burgundy)}
 .recorder-status b{background:var(--raja-burgundy)}
 input,select{border-color:var(--line);background:var(--panel);color:var(--ink)}
 input[type=range]{accent-color:var(--raja-burgundy)}
+
+/* Compact playlist management cards on phones: preserve content and tap targets. */
+@media (max-width: 600px) {
+  #lessonLists .lesson-list, .lesson-list {
+    padding: 12px 13px;
+    margin: 9px 0;
+    border-radius: 11px;
+  }
+  .lesson-list h3, .lesson-list h4 { margin-block: 3px 7px; line-height: 1.45; }
+  .lesson-list p { margin-block: 5px 9px; line-height: 1.55; }
+  .lesson-last-title { margin: 2px 0; font-size: 13px; line-height: 1.45; }
+  .lesson-where { margin: 5px 0 8px; line-height: 1.5; font-size: 12px; }
+  .lesson-card-actions { margin-block: 7px; gap: 6px; }
+  .lesson-card-actions button { min-height: 40px; padding: 7px 12px; }
+  .lesson-list > details { margin: 7px 0; }
+  .lesson-list summary { padding-block: 6px; line-height: 1.45; }
+  .lesson-parts { margin: 8px 0; padding: 4px 0; }
+  .lesson-parts > summary { font-size: 14px; }
+  .lesson-options { margin-top: 8px; padding-top: 2px; }
+  .lesson-row, .part-row { padding-block: 8px; }
+  .lesson-list select { margin: 5px 0; }
+  .lesson-library-heading { margin-top: 12px; }
+  .management-tabs { margin-block: 9px; }
+}
