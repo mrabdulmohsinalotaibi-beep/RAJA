@@ -117,7 +117,7 @@
     updateSSFallback();
     const b=$('formatDownload');
     const selected=current?.kind==='youtube'?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
-    const ready=!!selected && !loading;
+    const ready=!!selected && !loading && !selected.localDirect;
     b.setAttribute('aria-disabled',String(!ready));
     b.tabIndex=ready?0:-1;
     // Real same-origin attachment link, rather than synthetic hidden-anchor clicks.
@@ -209,10 +209,13 @@
     // Avoid duplicates when providers repeat the same variants.
     const unique=new Map();
     for(const stream of good.streams)if(!unique.has(stream.url))unique.set(stream.url,stream);
-    options=[...unique.values()];
-    chosen=0;error='';
+    // A public mirror may expose metadata while blocking the actual download.
+    // Keep this as playback metadata only, never as confirmed downloadable choices.
+    options=[];
+    chosen=null;
+    error='عُثر على بيانات الصيغ، لكن لم يؤكد أي مصدر إمكانية تنزيل الملف من المتصفح. استخدم المشغّل أو رابط ملف مباشر مصرح به.';
     if(good.title)$('formatIntro').textContent=good.title;
-    return true;
+    return false;
   }
   async function saveBrowserStream(stream){
     const ac=new AbortController();
@@ -325,7 +328,7 @@
       if(!selected){event.preventDefault();return}
       if(selected.localDirect){
         event.preventDefault();
-        saveBrowserStream(selected);
+        say('لا يتوفر رابط تنزيل مؤكد من هذا المصدر. استخدم المشغّل أو استورد ملفًا من مصدر مصرح.',true);
       }else{
         say('أرسل رَجْع طلب الملف إلى تنزيلات المتصفح. ستظهر النتيجة في تنزيلات الجهاز؛ وقد يفشل المصدر في بعض المقاطع.');
       }
