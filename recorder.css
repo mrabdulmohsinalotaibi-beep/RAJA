@@ -100,3 +100,17 @@ input[type=range]{accent-color:var(--raja-burgundy)}
   .lesson-library-heading { margin-top: 12px; }
   .management-tabs { margin-block: 9px; }
 }
+
+/* Compact playlist cards: details remain accessible on demand. */
+#lessonLists .lesson-list{padding:12px 14px;margin:8px 0;border-radius:12px}
+#lessonLists .lesson-list>h3{font-size:16px;margin:0 0 4px;line-height:1.35}
+#lessonLists .lesson-list>.raja-tip{font-size:11px;line-height:1.4;margin:2px 0}
+#lessonLists .lesson-list>.lesson-where{margin:5px 0;font-size:12px;line-height:1.4}
+#lessonLists .lesson-list>.lesson-where span{display:inline;font-size:11px}
+#lessonLists .lesson-card-actions{margin:7px 0;gap:6px}
+#lessonLists .lesson-card-actions button{min-height:38px;padding:7px 16px;font-size:12px}
+#lessonLists .lesson-manage-compact{border-top:1px solid var(--line);margin-top:7px;padding-top:0}
+#lessonLists .lesson-manage-compact>summary{padding:9px 0 4px;font-size:12px;line-height:1.4}
+#lessonLists .lesson-manage-compact:not([open]){margin-bottom:0}
+#lessonLists .lesson-manage-compact .lesson-parts{margin:7px 0}
+@media(max-width:600px){#lessonLists .lesson-list{padding:11px 12px;margin:7px 0}#lessonLists .lesson-card-actions .lesson-primary{min-width:100px}}
