@@ -1,6 +1,6 @@
 import unittest
 from fastapi import HTTPException
-from app import canonical_media_url
+from app import canonical_media_url, available_choices
 
 class MediaURLTests(unittest.TestCase):
     def test_youtube(self):
@@ -24,6 +24,34 @@ class MediaURLTests(unittest.TestCase):
         ):
             with self.subTest(url=url), self.assertRaises(HTTPException):
                 canonical_media_url(url)
+
+class FormatChoiceTests(unittest.TestCase):
+    def test_real_resolutions_and_audio(self):
+        info = {"formats": [
+            {"ext": "webm", "vcodec": "vp9", "acodec": "none", "height": 360},
+            {"ext": "m4a", "vcodec": "none", "acodec": "aac"},
+        ]}
+        self.assertEqual(available_choices(info), [
+            {"format": "mp4", "quality": 360, "kind": "video"},
+            {"format": "mp3", "quality": 192, "kind": "audio"},
+        ])
+
+    def test_no_fake_1080_when_only_360(self):
+        info = {"formats": [{"ext": "mp4", "vcodec": "h264", "acodec": "aac", "height": 360}]}
+        self.assertEqual(available_choices(info), [
+            {"format": "mp4", "quality": 360, "kind": "video"},
+            {"format": "mp3", "quality": 192, "kind": "audio"},
+        ])
+
+    def test_reject_video_without_audio(self):
+        info = {"formats": [{"ext": "webm", "vcodec": "vp9", "acodec": "none", "height": 720}]}
+        self.assertEqual(available_choices(info), [])
+
+    def test_audio_only(self):
+        info = {"formats": [{"ext": "m4a", "vcodec": "none", "acodec": "aac"}]}
+        self.assertEqual(available_choices(info), [
+            {"format": "mp3", "quality": 192, "kind": "audio"},
+        ])
 
 if __name__ == "__main__":
     unittest.main()
