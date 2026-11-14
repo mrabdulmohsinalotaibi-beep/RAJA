@@ -28,8 +28,8 @@ jobs:
           probe("https://raja-media.onrender.com/api/download?url=https%3A%2F%2F127.0.0.1%2F&format=mp4&quality=360",400)
           try:
               probe("https://raja.athat.app/api/formats?url=https%3A%2F%2Fexample.com%2Freel",400)
-          except Exception as exc:
-              print("Cloudflare edge response requires separate investigation:",repr(exc))
+          except SystemExit as exc:
+              print("Cloudflare edge did not return the expected 400:",repr(exc))
           PY
       - name: Try licensed Big Buck Bunny YouTube sample metadata and MP3
         continue-on-error: true
