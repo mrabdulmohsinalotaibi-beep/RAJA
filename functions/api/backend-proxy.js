@@ -10,7 +10,7 @@ export function validatedSocialUrl(raw) {
       return 'https://www.instagram.com'+u.pathname.replace(/\/?$/,'/');
     if(h==='tiktok.com'&&/^\/@[A-Za-z0-9_.-]+\/video\/[0-9]+\/?$/.test(u.pathname))
       return 'https://www.tiktok.com'+u.pathname;
-    if(['vm.tiktok.com','vt.tiktok.com'].includes(h)&&/^\/(t|v)\/[A-Za-z0-9_-]+\/?$/.test(u.pathname))
+    if(['vm.tiktok.com','vt.tiktok.com'].includes(h)&&/^\/(?:t\/|v\/)?[A-Za-z0-9_-]+\/?$/.test(u.pathname))
       return 'https://'+h+u.pathname;
     return null;
   }catch{return null}
