@@ -75,7 +75,7 @@ SOCIAL_HOSTS = {
 }
 SOCIAL_POST = re.compile(r"^/(?:p|reel|reels|tv)/[A-Za-z0-9_-]+/?$")
 TIKTOK_POST = re.compile(r"^/@[A-Za-z0-9_.-]+/video/[0-9]+/?$")
-TIKTOK_SHORT = re.compile(r"^/(?:t|v)/[A-Za-z0-9_-]+/?$")
+TIKTOK_SHORT = re.compile(r"^/(?:t/|v/)?[A-Za-z0-9_-]+/?$")
 def canonical_media_url(raw: str) -> tuple[str, str, str]:
     u = urlsplit(raw)
     if u.scheme != "https" or u.username or u.password or u.port or u.fragment:
