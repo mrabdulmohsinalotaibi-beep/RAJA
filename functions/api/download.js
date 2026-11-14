@@ -1,4 +1,4 @@
-import {proxiedDownload} from './backend-proxy.js';
+import {proxiedDownload,validatedSocialUrl} from './backend-proxy.js';
 import {resolveVideo} from './formats.js';
 
 const allowed=new Set(['mp4','webm','m4a','mp3','ogg','opus']);
@@ -13,13 +13,17 @@ function filename(title,format){
 export async function onRequestGet({request,env}){
   const u=new URL(request.url);
   const id=u.searchParams.get('id')||'';
+  const socialRaw=u.searchParams.get('url');
+  const socialUrl=socialRaw?validatedSocialUrl(socialRaw):null;
   const format=(u.searchParams.get('format')||'').toLowerCase();
   const quality=(u.searchParams.get('quality')||'').slice(0,60);
   const kind=u.searchParams.get('kind')||'';
-  if(!/^[a-zA-Z0-9_-]{11}$/.test(id))return jsonError('invalid_video_id',400);
+  if(socialRaw&&!socialUrl)return jsonError('unsupported_source_url',400);
+  if(!socialUrl&&!/^[a-zA-Z0-9_-]{11}$/.test(id))return jsonError('invalid_video_id',400);
   if(!allowed.has(format)||!['video','audio'].includes(kind))return jsonError('invalid_format',400);
-  const privateResult=await proxiedDownload(request,env,{id,format,kind,quality});
+  const privateResult=await proxiedDownload(request,env,{id,format,kind,quality,socialUrl});
   if(privateResult)return privateResult;
+  if(socialUrl)return jsonError('backend_unavailable',503);
   const {data}=await resolveVideo(id);
   if(!data)return jsonError('sources_unavailable',503);
   const candidates=data.streams.filter(s=>s.format===format&&s.kind===kind);

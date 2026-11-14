@@ -67,6 +67,37 @@ def canonical_url(raw: str) -> tuple[str, str]:
         raise HTTPException(400, "أدخل رابط فيديو YouTube صالحًا.") from exc
 
 
+# Only recognized public post URL shapes are accepted; never accept an arbitrary
+# user supplied host, private IP, credentials, port, playlist, or redirect URL.
+SOCIAL_HOSTS = {
+    "instagram.com": "instagram",
+    "tiktok.com": "tiktok",
+}
+SOCIAL_POST = re.compile(r"^/(?:p|reel|reels|tv)/[A-Za-z0-9_-]+/?$")
+TIKTOK_POST = re.compile(r"^/@[A-Za-z0-9_.-]+/video/[0-9]+/?$")
+TIKTOK_SHORT = re.compile(r"^/(?:t/|v/)?[A-Za-z0-9_-]+/?$")
+def canonical_media_url(raw: str) -> tuple[str, str, str]:
+    u = urlsplit(raw)
+    if u.scheme != "https" or u.username or u.password or u.port or u.fragment:
+        raise HTTPException(400, "استخدم رابط HTTPS عامًا وصالحًا.")
+    host = (u.hostname or "").lower()
+    host = re.sub(r"^(?:www\.|m\.)", "", host)
+    if host in ("youtube.com", "youtube-nocookie.com", "youtu.be"):
+        video_id, canonical = canonical_url(raw)
+        return "youtube", video_id, canonical
+    if host == "instagram.com" and SOCIAL_POST.fullmatch(u.path):
+        post_id = u.path.strip("/").split("/")[-1]
+        return "instagram", post_id, "https://www.instagram.com" + u.path.rstrip("/") + "/"
+    if host in ("tiktok.com", "vm.tiktok.com", "vt.tiktok.com"):
+        if host == "tiktok.com" and TIKTOK_POST.fullmatch(u.path):
+            post_id = u.path.strip("/").split("/")[-1]
+        elif host in ("vm.tiktok.com", "vt.tiktok.com") and TIKTOK_SHORT.fullmatch(u.path):
+            post_id = u.path.strip("/").split("/")[-1]
+        else:
+            raise HTTPException(400, "رابط TikTok غير مدعوم.")
+        return "tiktok", post_id, "https://" + host + u.path
+    raise HTTPException(400, "يدعم رَجْع روابط المنشورات العامة من YouTube وInstagram وTikTok فقط.")
+
 def youtube_options(clients: tuple[str, ...] | None = None) -> dict:
     options = {
         "noplaylist": True,
@@ -87,7 +118,10 @@ def youtube_options(clients: tuple[str, ...] | None = None) -> dict:
     return options
 
 
-def extract_info(url: str) -> dict:
+def extract_info(url: str, platform: str = "youtube") -> dict:
+    if platform != "youtube":
+        with YoutubeDL(youtube_options()) as ydl:
+            return ydl.extract_info(url, download=False)
     last_error = None
     for clients in CLIENT_GROUPS:
         try:
@@ -127,27 +161,27 @@ async def health() -> dict:
 @app.get("/api/formats")
 async def formats(request: Request, url: str = Query(..., max_length=500)) -> dict:
     await limit(request)
-    video_id, canonical = canonical_url(url)
+    platform, video_id, canonical = canonical_media_url(url)
     try:
-        info = await asyncio.wait_for(asyncio.to_thread(extract_info, canonical), timeout=65)
+        info = await asyncio.wait_for(asyncio.to_thread(extract_info, canonical, platform), timeout=65)
         check_info(info)
     except DownloadError as exc:
-        raise HTTPException(422, "لم يتمكن الخادم المجاني من قراءة المقطع؛ قد يطلب YouTube التحقق من المستخدم.") from exc
+        raise HTTPException(422, "لم يتمكن المصدر من إتاحة المقطع؛ ربما يتطلب تسجيل الدخول أو لا يسمح بالتنزيل.") from exc
     except TimeoutError as exc:
         raise HTTPException(504, "انتهت مهلة استعلام المقطع.") from exc
     formats = info.get("formats") or []
-    videos = [f for f in formats if f.get("vcodec") not in (None, "none") and f.get("height") and
-              (f.get("ext") == "mp4" or f.get("container") == "mp4")]
+    videos = [f for f in formats if f.get("vcodec") not in (None, "none") and f.get("height")]
     audios = [f for f in formats if f.get("acodec") not in (None, "none")]
     sizes = sorted({int(f.get("height")) for f in videos if f.get("height") and int(f["height"]) <= 1080})
     # List only ceilings for resolutions actually present (no phantom 1080p on 360p video).
-    qualities = sorted({next(q for q in QUALITY if q >= n) for n in sizes})
+    qualities = sorted({next((q for q in QUALITY if q >= n), 1080) for n in sizes})
     choices = [{"format": "mp4", "quality": q, "kind": "video"} for q in qualities]
     if audios:
         choices.append({"format": "mp3", "quality": 192, "kind": "audio"})
     return {
         "ok": bool(choices),
         "id": video_id,
+        "platform": platform,
         "title": (info.get("title") or "RAJA")[:160],
         "duration": info.get("duration"),
         "choices": choices,
@@ -155,7 +189,7 @@ async def formats(request: Request, url: str = Query(..., max_length=500)) -> di
     }
 
 
-def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
+def download_media(url: str, kind: str, quality: int, directory: str, platform: str = 'youtube') -> Path:
     def progress(info: dict) -> None:
         if info.get("status") == "downloading" and info.get("downloaded_bytes", 0) > MAX_BYTES:
             raise DownloadError("Video exceeds free tier file size")
@@ -165,7 +199,7 @@ def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
             return "Video exceeds free tier duration"
         return None
 
-    opts = youtube_options(CLIENT_GROUPS[0])
+    opts = youtube_options(CLIENT_GROUPS[0] if platform == "youtube" else None)
     opts.update({
         "skip_download": False,
         "outtmpl": {"default": os.path.join(directory, "%(id)s.%(ext)s")},
@@ -182,13 +216,14 @@ def download_media(url: str, kind: str, quality: int, directory: str) -> Path:
         # Prefer actual MP4 video plus M4A audio to avoid incompatible files.
         opts["format"] = (
             f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/"
-            f"best[height<={quality}][ext=mp4]"
+            f"best[height<={quality}][ext=mp4]/best[height<={quality}]"
         )
         opts["merge_output_format"] = "mp4"
     info = None
     last_error = None
-    for clients in CLIENT_GROUPS:
-        opts["extractor_args"] = {"youtube": {"player_client": list(clients)}}
+    for clients in (CLIENT_GROUPS if platform == "youtube" else (None,)):
+        if clients:
+            opts["extractor_args"] = {"youtube": {"player_client": list(clients)}}
         try:
             with YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=True)
@@ -223,7 +258,7 @@ async def download(
     quality: int = Query(720, ge=144, le=1080),
 ):
     await limit(request)
-    video_id, canonical = canonical_url(url)
+    platform, video_id, canonical = canonical_media_url(url)
     if format == "mp4" and quality not in QUALITY:
         raise HTTPException(400, "جودة الفيديو غير مدعومة.")
     try:
@@ -232,10 +267,10 @@ async def download(
         raise HTTPException(429, "الخادم مشغول بتنزيلات أخرى. أعد المحاولة بعد قليل.") from exc
     tempdir = tempfile.mkdtemp(prefix="raja_")
     try:
-        output = await asyncio.to_thread(download_media, canonical, format, quality, tempdir)
+        output = await asyncio.to_thread(download_media, canonical, format, quality, tempdir, platform)
         return FileResponse(
             str(output),
-            filename=f"raja-{video_id}.{format}",
+            filename=f"raja-{platform}-{video_id}.{format}",
             media_type="audio/mpeg" if format == "mp3" else "video/mp4",
             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
             background=BackgroundTask(cleanup_temp, tempdir),
@@ -243,7 +278,7 @@ async def download(
     except DownloadError as exc:
         shutil.rmtree(tempdir, ignore_errors=True)
         ACTIVE_DOWNLOADS.release()
-        raise HTTPException(422, "تعذر التنزيل من YouTube. قد تكون هناك حماية أو قيود أو حاجة إلى تسجيل الدخول.") from exc
+        raise HTTPException(422, "تعذر التنزيل من المصدر. قد تكون هناك قيود أو حاجة إلى تسجيل الدخول.") from exc
     except Exception as exc:
         shutil.rmtree(tempdir, ignore_errors=True)
         ACTIVE_DOWNLOADS.release()

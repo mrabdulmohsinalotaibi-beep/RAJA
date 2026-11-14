@@ -1,0 +1,30 @@
+name: RAJA media quality gates
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+    branches: [main]
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: JavaScript syntax
+        run: |
+          node --check format-picker.js
+          node --check functions/api/backend-proxy.js
+          node --check functions/api/formats.js
+          node --check functions/api/download.js
+      - name: Python syntax
+        run: python -m compileall -q backend/app.py
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Validate URL allowlist
+        working-directory: backend
+        run: python -m unittest discover -s tests -v

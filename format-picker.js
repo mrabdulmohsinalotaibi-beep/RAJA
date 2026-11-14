@@ -1,4 +1,4 @@
-/* RAJA YouTube format selector: downloads only actually available media streams. */
+/* RAJA multi-platform media format selector: downloads only actually available media streams. */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
@@ -69,6 +69,12 @@
       if(!['https:','http:'].includes(u.protocol))return null;
       const id=window.rajaYoutubeId?.(u.href);
       if(id)return {kind:'youtube',id,url:u.href};
+      const host=u.hostname.toLowerCase().replace(/^(www\.|m\.)/,'');
+      const instagram=host==='instagram.com' && /^\/(p|reel|reels|tv)\/[A-Za-z0-9_-]+\/?$/.test(u.pathname);
+      const tiktok=host==='tiktok.com' && /^\/@[A-Za-z0-9_.-]+\/video\/[0-9]+\/?$/.test(u.pathname);
+      const shortTikTok=['vm.tiktok.com','vt.tiktok.com'].includes(host) && /^\/(?:t\/|v\/)?[A-Za-z0-9_-]+\/?$/.test(u.pathname);
+      if(u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&!u.hash&&(instagram||tiktok||shortTikTok))
+        return {kind:'social',platform:instagram?'Instagram':'TikTok',url:u.href};
       const extension=(u.pathname.match(/\.([a-z0-9]+)$/i)||[])[1]?.toUpperCase();
       if(!SUPPORTED[extension])return null;
       return {kind:'direct',extension,url:u.href};
@@ -116,7 +122,7 @@
   function renderAction(){
     updateSSFallback();
     const b=$('formatDownload');
-    const selected=current?.kind==='youtube'?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
+    const selected=['youtube','social'].includes(current?.kind)?options[chosen]:current?.kind==='direct'?[{format:current.extension.toLowerCase()}][chosen]:null;
     const ready=!!selected && !loading && !selected.localDirect;
     b.setAttribute('aria-disabled',String(!ready));
     b.tabIndex=ready?0:-1;
@@ -125,14 +131,15 @@
     if(!ready){
       b.removeAttribute('href');
       b.removeAttribute('download');
-    }else if(current?.kind==='youtube'){
-      const q=new URLSearchParams({id:current.id,kind:selected.kind,format:selected.format,quality:selected.quality||''});
+    }else if(['youtube','social'].includes(current?.kind)){
+      const q=new URLSearchParams({kind:selected.kind,format:selected.format,quality:selected.quality||''});
+      if(current.kind==='social')q.set('url',current.url);else q.set('id',current.id);
       if(selected.localDirect){
         b.href='#';
         b.removeAttribute('download');
       }else{
         b.href='/api/download?'+q.toString();
-        b.download='raja-'+current.id+'.'+selected.format;
+        b.download='raja-'+(current.id||current.platform.toLowerCase())+'.'+selected.format;
       }
     }else if(current?.kind==='direct'){
       b.href='/api/direct-download?url='+encodeURIComponent(current.url);
@@ -140,10 +147,10 @@
     }
     const keep=$('formatKeep');
     const canSaveVideo=current?.kind==='youtube'&&ready&&selected.backend&&['mp4','mp3'].includes(selected.format);
-    keep.disabled=!!(current?.kind==='youtube'&&loading);
-    keep.textContent=canSaveVideo?'حفظ الملف داخل ملفاتي':current?.kind==='youtube'?'حفظ رابط المقطع':'حفظ الملف في ملفاتي';
+    keep.disabled=!!(['youtube','social'].includes(current?.kind)&&loading);
+    keep.textContent=canSaveVideo?'حفظ الملف داخل ملفاتي':['youtube','social'].includes(current?.kind)?'حفظ رابط المقطع':'حفظ الملف في ملفاتي';
     b.textContent=ready?'تنزيل '+selected.format.toUpperCase()+' إلى جهازي':loading?'جاري فحص الصيغ...':'لا توجد صيغة تنزيل متاحة';
-    if(current?.kind==='youtube'){
+    if(['youtube','social'].includes(current?.kind)){
       if(loading)say('يجري فحص صيغ MP4 والصوت من مصادر مجانية. انتظر النتيجة...');
       else if(error)say(error,true);
       else if(ready)say(selected?.localDirect?'هذه صيغة مكتشفة من مصدر خارجي، وقد يمنع iPhone تنزيلها. سيجري اختبار الاستلام عند الضغط.':'اختر الجودة ثم اضغط تنزيل؛ يعتمد النجاح على توفر الملف وسماح الخادم بالتنزيل.');
@@ -246,9 +253,9 @@
     const ac=new AbortController();
     controller=ac;
     try{
-      const r=await fetch('/api/formats?id='+encodeURIComponent(id),{signal:ac.signal,cache:'no-store'});
+      const r=await fetch('/api/formats?'+(current.kind==='social'?'url='+encodeURIComponent(current.url):'id='+encodeURIComponent(id)),{signal:ac.signal,cache:'no-store'});
       const json=await r.json().catch(()=>({}));
-      if(serial!==requestSerial||current?.id!==id)return;
+      if(serial!==requestSerial||(current?.kind==='youtube'&&current?.id!==id))return;
       if(r.status===401 || json.error==='google_signin_required'){
         error='سجّل الدخول إلى رَجْع بحساب Google للمتابعة. هذا لا يسجّلك تلقائيًا في YouTube.';
         cancelSSRedirect();
@@ -258,11 +265,11 @@
       if(!r.ok||!json.ok){
         error='لم تستجب الخدمة السحابية، جاري تجربة اتصال جهازك المباشر بمزودي الخدمة المجانية...';
         render();
-        const success=await browserFallback(id,serial);
+        const success=current?.kind==='youtube'?await browserFallback(id,serial):false;
         if(!success&&serial===requestSerial){
           error='لم يُرجع مصدر التنزيل ملفًا قابلًا للحفظ. هذا لا يعني بالضرورة أن المقطع يتطلب تسجيل الدخول. يمكنك مشاهدته أو حفظ رابطه.';
           updateSSFallback();
-          offerSSRedirect(serial);
+          if(current?.kind==='youtube')offerSSRedirect(serial);
         }
         return;
       }
@@ -278,7 +285,7 @@
       if(!options.length)error='لم يُرجع مزوّد التنزيل أي ملف قابل للحفظ.';
       if(json.title)$('formatIntro').textContent=json.title;
     }catch(e){
-      if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=await browserFallback(id,serial);if(!success&&serial===requestSerial){
+      if(e.name!=='AbortError'&&serial===requestSerial){error='جارٍ تجربة اتصال جهازك المباشر بالمصدر المجاني...';render();const success=current?.kind==='youtube'?await browserFallback(id,serial):false;if(!success&&serial===requestSerial){
           error='تعذر الاتصال بمصادر التنزيل لهذا الرابط. لا يمكن تأكيد السبب أو توفر الملف حاليًا.';
           updateSSFallback();
           offerSSRedirect(serial);
@@ -304,17 +311,17 @@
     resetNetwork();
     current=data;
     picker.hidden=false;updateSSFallback();
-    $('formatSource').textContent=data.kind==='youtube'?'رابط YouTube':'ملف مباشر';
-    $('formatIntro').textContent=data.kind==='youtube'?'اكتشاف صيغ الفيديو والصوت المتاحة...':'تنزيل الملف بصيغته الأصلية';
-    $('formatPreview').textContent=data.kind==='youtube'?'مشاهدة الفيديو':'فتح الملف';
+    $('formatSource').textContent=data.kind==='youtube'?'رابط YouTube':data.kind==='social'?'رابط '+data.platform:'ملف مباشر';
+    $('formatIntro').textContent=['youtube','social'].includes(data.kind)?'اكتشاف صيغ الفيديو والصوت المتاحة...':'تنزيل الملف بصيغته الأصلية';
+    $('formatPreview').textContent=['youtube','social'].includes(data.kind)?'فتح المقطع الأصلي':'فتح الملف';
     const cover=$('formatCover');
     cover.hidden=data.kind!=='youtube';
     if(data.kind==='youtube')cover.src='https://i.ytimg.com/vi/'+encodeURIComponent(data.id)+'/hqdefault.jpg';
     else cover.removeAttribute('src');
-    if(data.kind==='youtube'){
+    if(['youtube','social'].includes(data.kind)){
       loading=true;
       render();
-      checkYoutube(data.id,requestSerial);
+      checkYoutube(data.id||data.url,requestSerial);
     }else{chosen=0;render();}
     return true;
   }
@@ -323,7 +330,7 @@
     if(b.getAttribute('aria-disabled')==='true'||!current||loading){
       event.preventDefault(); return;
     }
-    if(current.kind==='youtube'){
+    if(['youtube','social'].includes(current.kind)){
       const selected=options[chosen];
       if(!selected){event.preventDefault();return}
       if(selected.localDirect){
@@ -343,6 +350,7 @@
     clearTimeout(timer);resetNetwork();current=data;picker.hidden=true;
     window.rajaShowPlayer?.();
     if(data.kind==='youtube')window.rajaOpenYoutube(data.id);
+    else if(data.kind==='social'){window.open(data.url,'_blank','noopener,noreferrer');return;}
     else if(/^(mp3|m4a|ogg|opus|flac|aac|wav|wma|aiff|amr|mp4|webm|mov|mkv|avi|mpeg|mpg|ts)$/i.test(data.extension))window.rajaLoadMedia(data.url,'وسائط');
     else {window.open(data.url,'_blank','noopener,noreferrer');return;}
     $(data.kind==='youtube'?'youtube':'player').scrollIntoView({behavior:'smooth',block:'center'});
@@ -351,6 +359,7 @@
   $('watchLink').onclick=watchLink;
   $('formatKeep').onclick=async()=>{
     if(!current)return;
+    if(current.kind==='social'){say('حمّل المقطع إلى جهازك أولًا، ثم أضفه إلى ملفاتي. لا تُحفظ روابط المنصات على أنها ملفات محلية.',true);return;}
     const b=$('formatKeep');
     const selected=current.kind==='youtube'?options[chosen]:null;
     if(selected?.backend&&['mp4','mp3'].includes(selected.format)){
@@ -375,7 +384,7 @@
   $('check').setAttribute('aria-label','عرض صيغ الفيديو والصوت');
   $('check').title='عرض صيغ الفيديو والصوت';
   $('check').onclick=()=>{
-    inspect(false,!picker.hidden&&current?.kind==='youtube'&&!!error);
+    inspect(false,!picker.hidden&&['youtube','social'].includes(current?.kind)&&!!error);
     if(!picker.hidden)picker.scrollIntoView({behavior:'smooth',block:'center'});
   };
   if(input.value)inspect(true);
