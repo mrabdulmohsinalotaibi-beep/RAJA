@@ -158,6 +158,24 @@ async def health() -> dict:
     return {"ok": True, "service": "raja-media-backend"}
 
 
+
+def available_choices(info: dict) -> list[dict]:
+    """Advertise only resolutions that have a usable video stream, not every ceiling."""
+    formats = info.get("formats") or []
+    videos = [f for f in formats if f.get("vcodec") not in (None, "none")
+              and isinstance(f.get("height"), (int, float))
+              and 0 < f["height"] <= 1080 and f.get("ext") not in ("mhtml", "jpg")]
+    audio = any(f.get("acodec") not in (None, "none") for f in formats)
+    # A playable video stream without audio should not be offered as a silent movie.
+    has_audio_track = audio or any(f.get("acodec") not in (None, "none") for f in videos)
+    ceilings = {next((q for q in QUALITY if q >= f["height"]), 1080) for f in videos}
+    choices = [{"format": "mp4", "quality": q, "kind": "video"}
+               for q in sorted(ceilings)] if has_audio_track else []
+    if audio:
+        choices.append({"format": "mp3", "quality": 192, "kind": "audio"})
+    return choices
+
+
 @app.get("/api/formats")
 async def formats(request: Request, url: str = Query(..., max_length=500)) -> dict:
     await limit(request)
@@ -169,15 +187,7 @@ async def formats(request: Request, url: str = Query(..., max_length=500)) -> di
         raise HTTPException(422, "لم يتمكن المصدر من إتاحة المقطع؛ ربما يتطلب تسجيل الدخول أو لا يسمح بالتنزيل.") from exc
     except TimeoutError as exc:
         raise HTTPException(504, "انتهت مهلة استعلام المقطع.") from exc
-    formats = info.get("formats") or []
-    videos = [f for f in formats if f.get("vcodec") not in (None, "none") and f.get("height")]
-    audios = [f for f in formats if f.get("acodec") not in (None, "none")]
-    sizes = sorted({int(f.get("height")) for f in videos if f.get("height") and int(f["height"]) <= 1080})
-    # List only ceilings for resolutions actually present (no phantom 1080p on 360p video).
-    qualities = sorted({next((q for q in QUALITY if q >= n), 1080) for n in sizes})
-    choices = [{"format": "mp4", "quality": q, "kind": "video"} for q in qualities]
-    if audios:
-        choices.append({"format": "mp3", "quality": 192, "kind": "audio"})
+    choices = available_choices(info)
     return {
         "ok": bool(choices),
         "id": video_id,
@@ -185,7 +195,7 @@ async def formats(request: Request, url: str = Query(..., max_length=500)) -> di
         "title": (info.get("title") or "RAJA")[:160],
         "duration": info.get("duration"),
         "choices": choices,
-        "note": "تنزيل MP3 يحتاج FFmpeg. لا تعمل بعض روابط YouTube دون تسجيل الدخول.",
+        "note": "الصيغ المعروضة تعتمد على ملفات المصدر الفعلية. لا يدعم رَجْع تجاوز تسجيل الدخول أو حماية المنصة.",
     }
 
 
@@ -216,9 +226,14 @@ def download_media(url: str, kind: str, quality: int, directory: str, platform: 
         # Prefer actual MP4 video plus M4A audio to avoid incompatible files.
         opts["format"] = (
             f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/"
-            f"best[height<={quality}][ext=mp4]/best[height<={quality}]"
+            f"best[height<={quality}][ext=mp4]/"
+            f"bestvideo[height<={quality}]+bestaudio/"
+            f"best[height<={quality}]"
         )
         opts["merge_output_format"] = "mp4"
+        # Some public social videos are only supplied as WebM/other containers.
+        # An FFmpeg conversion is necessary; renaming the file .mp4 is incorrect.
+        opts["postprocessors"] = [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}]
     info = None
     last_error = None
     for clients in (CLIENT_GROUPS if platform == "youtube" else (None,)):
