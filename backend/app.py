@@ -81,7 +81,7 @@ def canonical_media_url(raw: str) -> tuple[str, str, str]:
     if u.scheme != "https" or u.username or u.password or u.port or u.fragment:
         raise HTTPException(400, "استخدم رابط HTTPS عامًا وصالحًا.")
     host = (u.hostname or "").lower()
-    host = re.sub(r"^(?:www\\.|m\\.)", "", host)
+    host = re.sub(r"^(?:www\.|m\.)", "", host)
     if host in ("youtube.com", "youtube-nocookie.com", "youtu.be"):
         video_id, canonical = canonical_url(raw)
         return "youtube", video_id, canonical
