@@ -72,7 +72,7 @@
       const host=u.hostname.toLowerCase().replace(/^(www\.|m\.)/,'');
       const instagram=host==='instagram.com' && /^\/(p|reel|reels|tv)\/[A-Za-z0-9_-]+\/?$/.test(u.pathname);
       const tiktok=host==='tiktok.com' && /^\/@[A-Za-z0-9_.-]+\/video\/[0-9]+\/?$/.test(u.pathname);
-      const shortTikTok=['vm.tiktok.com','vt.tiktok.com'].includes(host) && /^\/(t|v)\/[A-Za-z0-9_-]+\/?$/.test(u.pathname);
+      const shortTikTok=['vm.tiktok.com','vt.tiktok.com'].includes(host) && /^\/(?:t\/|v\/)?[A-Za-z0-9_-]+\/?$/.test(u.pathname);
       if(u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&!u.hash&&(instagram||tiktok||shortTikTok))
         return {kind:'social',platform:instagram?'Instagram':'TikTok',url:u.href};
       const extension=(u.pathname.match(/\.([a-z0-9]+)$/i)||[])[1]?.toUpperCase();
