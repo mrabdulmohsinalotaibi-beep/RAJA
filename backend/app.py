@@ -166,7 +166,7 @@ async def formats(request: Request, url: str = Query(..., max_length=500)) -> di
         info = await asyncio.wait_for(asyncio.to_thread(extract_info, canonical, platform), timeout=65)
         check_info(info)
     except DownloadError as exc:
-        raise HTTPException(422, "لم يتمكن الخادم المجاني من قراءة المقطع؛ قد يطلب YouTube التحقق من المستخدم.") from exc
+        raise HTTPException(422, "لم يتمكن المصدر من إتاحة المقطع؛ ربما يتطلب تسجيل الدخول أو لا يسمح بالتنزيل.") from exc
     except TimeoutError as exc:
         raise HTTPException(504, "انتهت مهلة استعلام المقطع.") from exc
     formats = info.get("formats") or []
@@ -278,7 +278,7 @@ async def download(
     except DownloadError as exc:
         shutil.rmtree(tempdir, ignore_errors=True)
         ACTIVE_DOWNLOADS.release()
-        raise HTTPException(422, "تعذر التنزيل من YouTube. قد تكون هناك حماية أو قيود أو حاجة إلى تسجيل الدخول.") from exc
+        raise HTTPException(422, "تعذر التنزيل من المصدر. قد تكون هناك قيود أو حاجة إلى تسجيل الدخول.") from exc
     except Exception as exc:
         shutil.rmtree(tempdir, ignore_errors=True)
         ACTIVE_DOWNLOADS.release()
